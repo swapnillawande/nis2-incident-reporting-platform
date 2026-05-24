@@ -2,12 +2,16 @@ package com.nisync.user.service;
 
 import java.util.List;
 
+import com.nisync.user.dto.AuthResponseDto;
+import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
 
 public interface UserService {
 
     UserResponseDto register(RegisterRequestDto request);
+    
+    AuthResponseDto login(LoginRequestDto request);
 
     UserResponseDto getUserByEmail(String email);
     

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nisync.user.dto.AuthResponseDto;
+import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
 import com.nisync.user.service.UserService;
@@ -40,6 +42,19 @@ public class UserController {
 
         return response;
         
+    }
+    
+    @PostMapping("/login")
+    public AuthResponseDto login(@Valid @RequestBody LoginRequestDto request) {
+
+        logger.info("POST /users/login called for email: {}", request.getEmail());
+
+        AuthResponseDto response = userService.login(request);
+
+        logger.info("User login completed successfully. userId: {}, email: {}",
+                response.getUserId(), response.getEmail());
+
+        return response;
     }
 
     @GetMapping("/email/{email}")

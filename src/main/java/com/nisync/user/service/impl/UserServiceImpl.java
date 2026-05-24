@@ -8,8 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.user.dto.AuthResponseDto;
+import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserMapperDto;
 import com.nisync.user.dto.UserResponseDto;
@@ -61,6 +64,39 @@ public class UserServiceImpl implements UserService{
         
         
 	}
+	
+	@Override
+	public AuthResponseDto login(LoginRequestDto request) {
+
+	    logger.info("Login request received for email: {}", request.getEmail());
+
+	    AppUser user = userRepository.findByEmail(request.getEmail())
+	            .orElseThrow(() -> {
+	                logger.warn("Login failed. User not found with email: {}", request.getEmail());
+	                return new ResourceNotFoundException("User not found with email: " + request.getEmail());
+	            });
+
+	    boolean passwordMatches = passwordEncoder.matches(
+	            request.getPassword(),
+	            user.getPasswordHash()
+	    );
+
+	    if (!passwordMatches) {
+	        logger.warn("Login failed. Invalid password for email: {}", request.getEmail());
+	        throw new BadRequestException("Invalid email or password");
+	    }
+
+	    logger.info("Login successful. userId: {}, email: {}", user.getId(), user.getEmail());
+
+	    return new AuthResponseDto(
+	            null,
+	            user.getId(),
+	            user.getFullName(),
+	            user.getEmail(),
+	            user.getRoles()
+	    );
+	}
+	
 
 	@Override
 	public UserResponseDto getUserByEmail(String email) {
