@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.nisync.common.exception.DuplicateResourceException;
+import com.nisync.common.exception.ResourceNotFoundException;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserMapperDto;
 import com.nisync.user.dto.UserResponseDto;
@@ -38,7 +40,7 @@ public class UserServiceImpl implements UserService{
 		
         if (userRepository.existsByEmail(request.getEmail())) {
             logger.warn("Registration failed... Email already exists: {}", request.getEmail());
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Email already exists: " + request.getEmail());
         }
 
         AppUser user = new AppUser();
@@ -68,7 +70,7 @@ public class UserServiceImpl implements UserService{
         AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("User not found with email: {}", email);
-                    return new RuntimeException("User not found");
+                    throw new ResourceNotFoundException("User not found with email: " + email);
                 });
 
         logger.info("User found. userId: {}, email: {}", user.getId(), user.getEmail());
