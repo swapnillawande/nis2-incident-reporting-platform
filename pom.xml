@@ -86,6 +86,30 @@
 		    <version>42.6.0</version>
 		    <scope>compile</scope>
 		</dependency>
+		<!-- Spring Security for PasswordEncoder, BCrypt, authentication -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		
+		<!-- MongoDB for raw security events -->
+		<!--  <dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>  
+		-->
+		
+		<!-- Kafka for event-driven flow -->
+		<dependency>
+		    <groupId>org.springframework.kafka</groupId>
+		    <artifactId>spring-kafka</artifactId>
+		</dependency>
+		
+		<!-- Actuator for health checks and observability -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
