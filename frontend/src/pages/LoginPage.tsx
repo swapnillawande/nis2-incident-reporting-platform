@@ -1,82 +1,114 @@
 import { useState } from "react";
-import { loginUser } from "../api/userApi";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../api/userApi";
 
 function LoginPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [email, setEmail] = useState("admin@nis2.com");
-    const [password, setPassword] = useState("Admin@123");
-    const [message, setMessage] = useState("");
-    const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [email, setEmail] = useState("admin@nis2.com");
+  const [password, setPassword] = useState("Admin@123");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage("");
-        setMessageType("");
+    setMessage("");
+    setMessageType("");
 
-        try {
-            const response = await loginUser({ email, password });
+    try {
+      const response = await loginUser({
+        email,
+        password,
+      });
 
-            localStorage.setItem("user", JSON.stringify(response));
+      localStorage.setItem("user", JSON.stringify(response));
 
-            setMessage(`Login successful. Welcome ${response.fullName}`);
-            setMessageType("success");
+      setMessage(`Login successful. Welcome ${response.fullName}`);
+      setMessageType("success");
 
-            setTimeout(() => {
-                navigate("/");
-            }, 700);
-        } catch (error: any) {
-            console.error("Login error:", error);
+      setTimeout(() => {
+        navigate("/");
+      }, 700);
+    } catch (error: any) {
+      console.error("Login error:", error);
 
-            const errorMessage =
-                error.response?.data?.message ||
-                error.response?.data?.error ||
-                error.message ||
-                "Login failed";
+      const backendData = error.response?.data;
 
-            setMessage(errorMessage);
-            setMessageType("error");
-        }
-    };
+      let errorMessage = "Login failed";
 
-    return (
-        <div className="auth-page">
-            <div className="auth-card">
-                <h2>Welcome Back</h2>
-                <p className="auth-subtitle">
-                    Sign in to manage incidents, alerts, audit logs, and compliance reports.
-                </p>
+      if (backendData?.validationErrors) {
+        errorMessage = Object.values(backendData.validationErrors).join("\n");
+      } else if (backendData?.message) {
+        errorMessage = backendData.message;
+      } else if (backendData?.error) {
+        errorMessage = backendData.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-                <form onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@company.com"
-                        />
-                    </div>
+      setMessage(errorMessage);
+      setMessageType("error");
+    }
+  };
 
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter password"
-                        />
-                    </div>
+  return (
+    <div className="auth-page">
+      <div className="auth-info">
+        <h1>NIS2 Incident Reporting Platform</h1>
+        <p>
+          Monitor security events, manage incidents, protect evidence trails,
+          and generate compliance-ready reports from one full-stack platform.
+        </p>
 
-                    <button type="submit">Login</button>
-                </form>
-
-                {message && <div className={`message ${messageType}`}>{message}</div>}
-            </div>
+        <div className="auth-info-badges">
+          <span className="badge">Security Events</span>
+          <span className="badge">Incident Reports</span>
+          <span className="badge">Audit Ready</span>
         </div>
-    );
+      </div>
+
+      <div className="auth-card">
+        <h2>Welcome Back</h2>
+
+        <p className="auth-subtitle">
+          Sign in to continue monitoring alerts, incidents, assets, and reports.
+        </p>
+
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="admin@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button type="submit">Login</button>
+        </form>
+
+        {message && (
+          <div className={`message ${messageType}`}>
+            {message.split("\n").map((line, index) => (
+              <p key={index}>{line}</p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default LoginPage;
