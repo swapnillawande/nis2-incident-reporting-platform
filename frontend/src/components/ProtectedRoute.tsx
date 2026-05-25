@@ -11,6 +11,13 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  const user = JSON.parse(userData);
+
+  if (!user.token) {
+    localStorage.removeItem("user");
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }
 
