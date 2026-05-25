@@ -15,6 +15,8 @@ import com.nisync.user.dto.UserResponseDto;
 import com.nisync.user.service.UserService;
 
 import jakarta.validation.Valid;
+
+import org.springframework.security.core.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,4 +70,17 @@ public class UserController {
         return response;
         
     }
+    
+    
+    @GetMapping("/me")
+    public UserResponseDto getCurrentUser(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        logger.info("GET /users/me called for authenticated user: {}", email);
+
+        return userService.getUserByEmail(email);
+    }
+    
+    
 }
