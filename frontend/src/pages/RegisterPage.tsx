@@ -3,122 +3,137 @@ import { registerUser } from "../api/userApi";
 import type { RoleName } from "../types/user";
 
 function RegisterPage() {
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [role, setRole] = useState<RoleName>("ADMIN");
-    const [message, setMessage] = useState("");
-    const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<RoleName>("ADMIN");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage("");
-        setMessageType("");
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-        try {
-            const response = await registerUser({
-                fullName,
-                email,
-                password,
-                role,
-            });
+    setMessage("");
+    setMessageType("");
 
-            setMessage(`User registered successfully: ${response.email}`);
-            setMessageType("success");
+    try {
+      const response = await registerUser({
+        fullName,
+        email,
+        password,
+        role,
+      });
 
-            setFullName("");
-            setEmail("");
-            setPassword("");
-            setRole("ADMIN");
-        } catch (error: any) {
-            console.error("Registration error:", error);
+      setMessage(`User registered successfully: ${response.email}`);
+      setMessageType("success");
 
-            const backendData = error.response?.data;
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setRole("ADMIN");
+    } catch (error: any) {
+      console.error("Registration error:", error);
 
-            let errorMessage = "Registration failed";
+      const backendData = error.response?.data;
 
-            if (backendData?.validationErrors) {
-                errorMessage = Object.values(backendData.validationErrors).join("\n");
-            } else if (backendData?.message) {
-                errorMessage = backendData.message;
-            } else if (backendData?.error) {
-                errorMessage = backendData.error;
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
+      let errorMessage = "Registration failed";
 
-            setMessage(errorMessage);
-            setMessageType("error");
-        }
-    };
+      if (backendData?.validationErrors) {
+        errorMessage = Object.values(backendData.validationErrors).join("\n");
+      } else if (backendData?.message) {
+        errorMessage = backendData.message;
+      } else if (backendData?.error) {
+        errorMessage = backendData.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-    return (
-        <div className="auth-page">
-            <div className="auth-card">
-                <h2>Create Account</h2>
-                <p className="auth-subtitle">
-                    Register a platform user for NIS2 incident monitoring and reporting.
-                </p>
+      setMessage(errorMessage);
+      setMessageType("error");
+    }
+  };
 
-                <form onSubmit={handleRegister}>
-                    <div className="form-group">
-                        <label>Full Name</label>
-                        <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Enter full name"
-                        />
-                    </div>
+  return (
+    <div className="auth-page">
+      <div className="auth-info">
+        <h1>NIS2 Incident Reporting Platform</h1>
+        <p>
+          Create user access for security monitoring, incident response, and
+          compliance reporting workflows.
+        </p>
 
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@company.com"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Minimum 8 characters"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>Role</label>
-                        <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value as RoleName)}
-                        >
-                            <option value="ADMIN">ADMIN</option>
-                            <option value="SECURITY_ANALYST">SECURITY_ANALYST</option>
-                            <option value="COMPLIANCE_OFFICER">COMPLIANCE_OFFICER</option>
-                            <option value="AUDITOR">AUDITOR</option>
-                        </select>
-                    </div>
-
-                    <button type="submit">Register</button>
-                </form>
-
-                {message && (
-                    <div className={`message ${messageType}`}>
-                        {message.split("\n").map((line, index) => (
-                            <p key={index} style={{ margin: 0 }}>
-                                {line}
-                            </p>
-                        ))}
-                    </div>
-                )}
-            </div>
+        <div className="auth-info-badges">
+          <span className="badge">Role Based Access</span>
+          <span className="badge">JWT Security</span>
+          <span className="badge">Compliance Workflow</span>
         </div>
-    );
+      </div>
+
+      <div className="auth-card">
+        <h2>Create Account</h2>
+
+        <p className="auth-subtitle">
+          Register a platform user to access incident tracking, audit logs, and
+          compliance reporting.
+        </p>
+
+        <form onSubmit={handleRegister}>
+          <div className="form-group">
+            <label>Full Name</label>
+            <input
+              type="text"
+              placeholder="Enter full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="admin@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Minimum 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as RoleName)}
+            >
+              <option value="ADMIN">ADMIN</option>
+              <option value="SECURITY_ANALYST">SECURITY_ANALYST</option>
+              <option value="COMPLIANCE_OFFICER">COMPLIANCE_OFFICER</option>
+              <option value="AUDITOR">AUDITOR</option>
+            </select>
+          </div>
+
+          <button type="submit">Register</button>
+        </form>
+
+        {message && (
+          <div className={`message ${messageType}`}>
+            {message.split("\n").map((line, index) => (
+              <p key={index}>{line}</p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default RegisterPage;
