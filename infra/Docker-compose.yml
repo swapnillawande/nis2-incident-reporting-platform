@@ -31,6 +31,17 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
 
+  frontend:
+    build:
+      context: ../frontend
+    container_name: nis2-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - nis2-network
+
 volumes:
   postgres_data:
  
