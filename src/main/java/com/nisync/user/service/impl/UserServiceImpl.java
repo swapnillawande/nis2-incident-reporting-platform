@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
@@ -35,6 +36,9 @@ public class UserServiceImpl implements UserService{
     
 	@Autowired
     private PasswordEncoder passwordEncoder;
+	
+	@Autowired
+	private JwtService jwtService;
 	
 	@Override
 	public UserResponseDto register(RegisterRequestDto request) {
@@ -88,8 +92,15 @@ public class UserServiceImpl implements UserService{
 
 	    logger.info("Login successful. userId: {}, email: {}", user.getId(), user.getEmail());
 
+	    String token = jwtService.generateToken(
+	            user.getId(),
+	            user.getEmail(),
+	            user.getRoles()
+	    );
+	    
+	    
 	    return new AuthResponseDto(
-	            null,
+	    		token,
 	            user.getId(),
 	            user.getFullName(),
 	            user.getEmail(),
