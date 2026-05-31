@@ -86,6 +86,11 @@
 		    <version>42.6.0</version>
 		    <scope>compile</scope>
 		</dependency>
+		<dependency>
+		    <groupId>com.h2database</groupId>
+		    <artifactId>h2</artifactId>
+		    <scope>test</scope>
+		</dependency>
 		<!-- Spring Security for PasswordEncoder, BCrypt, authentication -->
 		<dependency>
 		    <groupId>org.springframework.boot</groupId>
