@@ -280,8 +280,18 @@ function IncidentsPage() {
         </button>
       </section>
 
-      <section className="table-panel incident-create-panel">
-        <h3>Report Incident</h3>
+      <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-emerald-700">
+              New case
+            </span>
+            <h3 className="mt-3 !mb-0">Report Incident</h3>
+          </div>
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+            Triage intake
+          </span>
+        </div>
         <form className="incident-form" onSubmit={handleCreate}>
           <div className="form-group">
             <label>Title</label>
@@ -324,7 +334,11 @@ function IncidentsPage() {
             />
           </div>
 
-          <button className="btn-primary" type="submit" disabled={isCreating}>
+          <button
+            className="btn-primary !w-auto !min-h-0 justify-self-start !rounded-xl !px-6 !py-3 !text-sm"
+            type="submit"
+            disabled={isCreating}
+          >
             {isCreating ? "Creating..." : "Create Incident"}
           </button>
         </form>
