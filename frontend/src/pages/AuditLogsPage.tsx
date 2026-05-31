@@ -3,6 +3,19 @@ import { getAuditLogs } from "../api/auditApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import type { AuditLogResponse } from "../types/audit";
 
+const ACTION_OPTIONS = [
+  "USER_REGISTERED",
+  "USER_LOGIN",
+  "USER_UPDATED",
+  "USER_DELETED",
+  "INCIDENT_CREATED",
+  "INCIDENT_UPDATED",
+  "INCIDENT_DELETED",
+  "INCIDENT_NOTE_ADDED",
+];
+
+const RESOURCE_TYPE_OPTIONS = ["USER", "INCIDENT"];
+
 const formatAction = (action: string) => action.replaceAll("_", " ");
 
 function AuditLogsPage() {
@@ -16,6 +29,9 @@ function AuditLogsPage() {
   const [isLoading, setIsLoading] = useState(isAdmin);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("");
+  const [queryFilter, setQueryFilter] = useState("");
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -28,7 +44,11 @@ function AuditLogsPage() {
     setMessageType("");
 
     try {
-      const response = await getAuditLogs();
+      const response = await getAuditLogs({
+        action: actionFilter,
+        resourceType: resourceTypeFilter,
+        query: queryFilter,
+      });
       setAuditLogs(response);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
@@ -42,7 +62,11 @@ function AuditLogsPage() {
       return;
     }
 
-    getAuditLogs()
+    getAuditLogs({
+      action: actionFilter,
+      resourceType: resourceTypeFilter,
+      query: queryFilter,
+    })
       .then((response) => {
         setAuditLogs(response);
       })
@@ -52,7 +76,7 @@ function AuditLogsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin]);
+  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter]);
 
   if (!isAdmin) {
     return (
@@ -85,6 +109,59 @@ function AuditLogsPage() {
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
+
+      <section className="filter-bar">
+        <div className="filter-group">
+          <label>Search</label>
+          <input
+            value={queryFilter}
+            onChange={(event) => setQueryFilter(event.target.value)}
+            placeholder="Actor, details, or resource ID"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>Action</label>
+          <select
+            value={actionFilter}
+            onChange={(event) => setActionFilter(event.target.value)}
+          >
+            <option value="">All actions</option>
+            {ACTION_OPTIONS.map((action) => (
+              <option key={action} value={action}>
+                {formatAction(action)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Resource</label>
+          <select
+            value={resourceTypeFilter}
+            onChange={(event) => setResourceTypeFilter(event.target.value)}
+          >
+            <option value="">All resources</option>
+            {RESOURCE_TYPE_OPTIONS.map((resourceType) => (
+              <option key={resourceType} value={resourceType}>
+                {resourceType}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setQueryFilter("");
+            setActionFilter("");
+            setResourceTypeFilter("");
+          }}
+          disabled={!queryFilter && !actionFilter && !resourceTypeFilter}
+        >
+          Clear Filters
+        </button>
+      </section>
 
       <section className="table-panel">
         {isLoading ? (
