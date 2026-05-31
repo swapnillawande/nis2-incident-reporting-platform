@@ -53,12 +53,13 @@ public class IncidentController {
 
     @GetMapping
     public List<IncidentResponseDto> getIncidents(
-            @RequestParam(required = false) IncidentStatus status,
-            @RequestParam(required = false) IncidentSeverity severity) {
+            @RequestParam(name = "status", required = false) IncidentStatus status,
+            @RequestParam(name = "severity", required = false) IncidentSeverity severity,
+            @RequestParam(name = "q", required = false) String query) {
 
-        logger.info("GET /incidents called. status: {}, severity: {}", status, severity);
+        logger.info("GET /incidents called. status: {}, severity: {}, query: {}", status, severity, query);
 
-        return incidentService.getIncidents(status, severity);
+        return incidentService.getIncidents(status, severity, query);
     }
 
     @GetMapping("/{incidentId}")

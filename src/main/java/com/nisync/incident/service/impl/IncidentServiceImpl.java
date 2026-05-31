@@ -14,6 +14,7 @@ import com.nisync.incident.service.IncidentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,10 +46,10 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity) {
-        logger.info("Fetching incidents. status: {}, severity: {}", status, severity);
+    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query) {
+        logger.info("Fetching incidents. status: {}, severity: {}, query: {}", status, severity, query);
 
-        return findIncidents(status, severity)
+        return incidentRepository.findAll(buildIncidentSpecification(status, severity, query))
                 .stream()
                 .map(IncidentMapperDto::toResponse)
                 .toList();
@@ -114,19 +115,36 @@ public class IncidentServiceImpl implements IncidentService {
                 });
     }
 
-    private List<Incident> findIncidents(IncidentStatus status, IncidentSeverity severity) {
-        if (status != null && severity != null) {
-            return incidentRepository.findByStatusAndSeverity(status, severity);
-        }
+    private Specification<Incident> buildIncidentSpecification(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String query) {
 
-        if (status != null) {
-            return incidentRepository.findByStatus(status);
-        }
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
 
-        if (severity != null) {
-            return incidentRepository.findBySeverity(severity);
-        }
+            if (status != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+            }
 
-        return incidentRepository.findAll();
+            if (severity != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("severity"), severity));
+            }
+
+            if (query != null && !query.isBlank()) {
+                String searchTerm = "%" + query.trim().toLowerCase() + "%";
+                var titlePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), searchTerm);
+                var descriptionPredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("description")),
+                        searchTerm
+                );
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.or(titlePredicate, descriptionPredicate)
+                );
+            }
+
+            return predicate;
+        };
     }
 }

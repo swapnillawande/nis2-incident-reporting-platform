@@ -12,6 +12,7 @@ import com.nisync.incident.service.impl.IncidentServiceImpl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -69,9 +70,9 @@ class IncidentServiceImplTest {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");
 
-        when(incidentRepository.findAll()).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(firstIncident, secondIncident));
 
-        List<IncidentResponseDto> response = incidentService.getIncidents(null, null);
+        List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null);
 
         assertEquals(2, response.size());
         assertEquals("First Incident", response.get(0).getTitle());
@@ -84,14 +85,12 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.IN_PROGRESS);
         incident.setSeverity(IncidentSeverity.HIGH);
 
-        when(incidentRepository.findByStatusAndSeverity(
-                IncidentStatus.IN_PROGRESS,
-                IncidentSeverity.HIGH
-        )).thenReturn(List.of(incident));
+        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(incident));
 
         List<IncidentResponseDto> response = incidentService.getIncidents(
                 IncidentStatus.IN_PROGRESS,
-                IncidentSeverity.HIGH
+                IncidentSeverity.HIGH,
+                "filtered"
         );
 
         assertEquals(1, response.size());
@@ -161,5 +160,9 @@ class IncidentServiceImplTest {
         incident.setUpdatedAt(LocalDateTime.now());
 
         return incident;
+    }
+
+    private Specification<Incident> anyIncidentSpecification() {
+        return any();
     }
 }

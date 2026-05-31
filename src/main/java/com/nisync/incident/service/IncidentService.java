@@ -12,7 +12,7 @@ public interface IncidentService {
 
     IncidentResponseDto createIncident(CreateIncidentRequestDto request, String reportedByEmail);
 
-    List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity);
+    List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query);
 
     IncidentResponseDto getIncidentById(Long incidentId);
 
