@@ -24,6 +24,7 @@ const emptyCreateForm: CreateIncidentRequest = {
   title: "",
   description: "",
   severity: "MEDIUM",
+  assignedToEmail: "",
 };
 
 function IncidentsPage() {
@@ -105,7 +106,8 @@ function IncidentsPage() {
       const matchesQuery =
         !normalizedQuery ||
         response.title.toLowerCase().includes(normalizedQuery) ||
-        response.description.toLowerCase().includes(normalizedQuery);
+        response.description.toLowerCase().includes(normalizedQuery) ||
+        (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false);
 
       if (matchesStatus && matchesSeverity && matchesQuery) {
         setIncidents((currentIncidents) => [response, ...currentIncidents]);
@@ -127,6 +129,7 @@ function IncidentsPage() {
       description: incident.description,
       severity: incident.severity,
       status: incident.status,
+      assignedToEmail: incident.assignedToEmail ?? "",
     });
     setIncidentNotes([]);
     setNewNote("");
@@ -322,6 +325,18 @@ function IncidentsPage() {
             </select>
           </div>
 
+          <div className="form-group">
+            <label>Assigned To</label>
+            <input
+              type="email"
+              value={createForm.assignedToEmail ?? ""}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, assignedToEmail: event.target.value })
+              }
+              placeholder="analyst@nis2.com"
+            />
+          </div>
+
           <div className="form-group span-2">
             <label>Description</label>
             <textarea
@@ -357,6 +372,7 @@ function IncidentsPage() {
                   <th>Severity</th>
                   <th>Status</th>
                   <th>Reported By</th>
+                  <th>Assigned To</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -378,6 +394,7 @@ function IncidentsPage() {
                       </span>
                     </td>
                     <td>{incident.reportedByEmail}</td>
+                    <td>{incident.assignedToEmail || "Unassigned"}</td>
                     <td>
                       <div className="table-actions">
                         <button className="btn-secondary compact" onClick={() => openEdit(incident)}>
@@ -461,6 +478,18 @@ function IncidentsPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label>Assigned To</label>
+                <input
+                  type="email"
+                  value={editForm.assignedToEmail ?? ""}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, assignedToEmail: event.target.value })
+                  }
+                  placeholder="analyst@nis2.com"
+                />
               </div>
 
               <div className="form-group span-2">
