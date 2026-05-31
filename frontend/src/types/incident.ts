@@ -25,3 +25,15 @@ export interface UpdateIncidentRequest {
   severity?: IncidentSeverity;
   status?: IncidentStatus;
 }
+
+export interface IncidentNote {
+  id: number;
+  incidentId: number;
+  note: string;
+  createdByEmail: string;
+  createdAt: string;
+}
+
+export interface CreateIncidentNoteRequest {
+  note: string;
+}

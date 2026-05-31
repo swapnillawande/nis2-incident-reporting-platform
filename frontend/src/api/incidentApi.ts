@@ -2,6 +2,8 @@ import axios from "axios";
 import { getAuthHeader } from "./userApi";
 import type {
   CreateIncidentRequest,
+  CreateIncidentNoteRequest,
+  IncidentNote,
   IncidentResponse,
   IncidentSeverity,
   IncidentStatus,
@@ -57,6 +59,31 @@ export const deleteIncident = async (
   const response = await axios.delete(`${API_BASE_URL}/incidents/${incidentId}`, {
     headers: getAuthHeader(),
   });
+
+  return response.data;
+};
+
+export const getIncidentNotes = async (
+  incidentId: number
+): Promise<IncidentNote[]> => {
+  const response = await axios.get(`${API_BASE_URL}/incidents/${incidentId}/notes`, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const addIncidentNote = async (
+  incidentId: number,
+  data: CreateIncidentNoteRequest
+): Promise<IncidentNote> => {
+  const response = await axios.post(
+    `${API_BASE_URL}/incidents/${incidentId}/notes`,
+    data,
+    {
+      headers: getAuthHeader(),
+    }
+  );
 
   return response.data;
 };

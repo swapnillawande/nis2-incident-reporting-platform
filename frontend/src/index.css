@@ -748,6 +748,54 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.notes-panel {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.notes-panel h3 {
+  margin-bottom: 16px;
+}
+
+.note-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.note-composer textarea {
+  min-height: 88px;
+}
+
+.notes-list {
+  display: grid;
+  gap: 12px;
+}
+
+.note-item {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+.note-item p {
+  margin: 0;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.note-item span {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* =========================
    UTILITY
 ========================= */
@@ -871,7 +919,12 @@ button:disabled {
     flex-direction: column-reverse;
   }
 
+  .note-composer {
+    grid-template-columns: 1fr;
+  }
+
   .modal-actions button,
+  .note-composer button,
   .page-header button {
     width: 100%;
   }

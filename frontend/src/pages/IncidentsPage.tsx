@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
+  addIncidentNote,
   createIncident,
   deleteIncident,
   getAllIncidents,
+  getIncidentNotes,
   updateIncident,
 } from "../api/incidentApi";
 import type {
   CreateIncidentRequest,
   IncidentResponse,
+  IncidentNote,
   IncidentSeverity,
   IncidentStatus,
   UpdateIncidentRequest,
@@ -34,6 +37,10 @@ function IncidentsPage() {
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
+  const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isAddingNote, setIsAddingNote] = useState(false);
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -105,7 +112,7 @@ function IncidentsPage() {
     }
   };
 
-  const openEdit = (incident: IncidentResponse) => {
+  const openEdit = async (incident: IncidentResponse) => {
     setSelectedIncident(incident);
     setEditForm({
       title: incident.title,
@@ -113,11 +120,25 @@ function IncidentsPage() {
       severity: incident.severity,
       status: incident.status,
     });
+    setIncidentNotes([]);
+    setNewNote("");
+    setIsLoadingNotes(true);
+
+    try {
+      const response = await getIncidentNotes(incident.id);
+      setIncidentNotes(response);
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to load incident notes"), "error");
+    } finally {
+      setIsLoadingNotes(false);
+    }
   };
 
   const closeEdit = () => {
     setSelectedIncident(null);
     setEditForm(null);
+    setIncidentNotes([]);
+    setNewNote("");
   };
 
   const handleSave = async () => {
@@ -154,6 +175,27 @@ function IncidentsPage() {
       showMessage("Incident deleted successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to delete incident"), "error");
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!selectedIncident || !newNote.trim()) {
+      return;
+    }
+
+    setIsAddingNote(true);
+
+    try {
+      const response = await addIncidentNote(selectedIncident.id, {
+        note: newNote.trim(),
+      });
+      setIncidentNotes((currentNotes) => [response, ...currentNotes]);
+      setNewNote("");
+      showMessage("Incident note added", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to add incident note"), "error");
+    } finally {
+      setIsAddingNote(false);
     }
   };
 
@@ -409,6 +451,42 @@ function IncidentsPage() {
                 Save Changes
               </button>
             </div>
+
+            <section className="notes-panel">
+              <h3>Timeline Notes</h3>
+
+              <div className="note-composer">
+                <textarea
+                  value={newNote}
+                  onChange={(event) => setNewNote(event.target.value)}
+                  placeholder="Add a triage update, containment step, or evidence note."
+                />
+                <button
+                  className="btn-secondary"
+                  onClick={handleAddNote}
+                  disabled={isAddingNote || !newNote.trim()}
+                >
+                  {isAddingNote ? "Adding..." : "Add Note"}
+                </button>
+              </div>
+
+              {isLoadingNotes ? (
+                <p className="text-muted">Loading notes...</p>
+              ) : incidentNotes.length === 0 ? (
+                <p className="text-muted">No timeline notes yet.</p>
+              ) : (
+                <div className="notes-list">
+                  {incidentNotes.map((note) => (
+                    <article className="note-item" key={note.id}>
+                      <p>{note.note}</p>
+                      <span>
+                        {note.createdByEmail} · {new Date(note.createdAt).toLocaleString()}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
           </section>
         </div>
       )}
