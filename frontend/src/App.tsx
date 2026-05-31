@@ -4,6 +4,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import IncidentsPage from "./pages/IncidentsPage";
 import UsersPage from "./pages/UsersPage";
+import AuditLogsPage from "./pages/AuditLogsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function Navbar() {
@@ -22,6 +23,7 @@ function Navbar() {
       <Link to="/">Dashboard</Link>
       {user && <Link to="/incidents">Incidents</Link>}
       {isAdmin && <Link to="/users">Users</Link>}
+      {isAdmin && <Link to="/audit-logs">Audit Logs</Link>}
 
       {!user && <Link to="/login">Login</Link>}
       {!user && <Link to="/register">Register</Link>}
@@ -68,6 +70,14 @@ function App() {
           element={
             <ProtectedRoute>
               <IncidentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute>
+              <AuditLogsPage />
             </ProtectedRoute>
           }
         />

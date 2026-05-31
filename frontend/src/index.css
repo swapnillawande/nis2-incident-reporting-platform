@@ -463,6 +463,10 @@ button:disabled {
   border-collapse: collapse;
 }
 
+.audit-table {
+  min-width: 960px;
+}
+
 .data-table th,
 .data-table td {
   padding: 16px 14px;
@@ -551,6 +555,18 @@ button:disabled {
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.audit-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
   font-size: 12px;
   font-weight: 800;
 }
