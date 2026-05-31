@@ -626,7 +626,7 @@ button:disabled {
 
 .filter-bar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+  grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(180px, 220px)) auto;
   align-items: end;
   gap: 14px;
   margin-top: 24px;

@@ -16,6 +16,7 @@ const API_BASE_URL =
 export interface IncidentFilters {
   status?: IncidentStatus | "";
   severity?: IncidentSeverity | "";
+  query?: string;
 }
 
 export const getAllIncidents = async (
@@ -26,6 +27,7 @@ export const getAllIncidents = async (
     params: {
       status: filters.status || undefined,
       severity: filters.severity || undefined,
+      q: filters.query?.trim() || undefined,
     },
   });
 

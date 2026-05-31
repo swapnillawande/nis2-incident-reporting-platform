@@ -37,6 +37,7 @@ function IncidentsPage() {
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
+  const [queryFilter, setQueryFilter] = useState("");
   const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
@@ -65,6 +66,7 @@ function IncidentsPage() {
       const response = await getAllIncidents({
         status: statusFilter,
         severity: severityFilter,
+        query: queryFilter,
       });
       setIncidents(response);
     } catch (error: unknown) {
@@ -78,6 +80,7 @@ function IncidentsPage() {
     getAllIncidents({
       status: statusFilter,
       severity: severityFilter,
+      query: queryFilter,
     })
       .then((response) => {
         setIncidents(response);
@@ -88,7 +91,7 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter]);
+  }, [statusFilter, severityFilter, queryFilter]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -98,8 +101,13 @@ function IncidentsPage() {
       const response = await createIncident(createForm);
       const matchesStatus = !statusFilter || response.status === statusFilter;
       const matchesSeverity = !severityFilter || response.severity === severityFilter;
+      const normalizedQuery = queryFilter.trim().toLowerCase();
+      const matchesQuery =
+        !normalizedQuery ||
+        response.title.toLowerCase().includes(normalizedQuery) ||
+        response.description.toLowerCase().includes(normalizedQuery);
 
-      if (matchesStatus && matchesSeverity) {
+      if (matchesStatus && matchesSeverity && matchesQuery) {
         setIncidents((currentIncidents) => [response, ...currentIncidents]);
       }
 
@@ -219,6 +227,15 @@ function IncidentsPage() {
 
       <section className="filter-bar">
         <div className="filter-group">
+          <label>Search</label>
+          <input
+            value={queryFilter}
+            onChange={(event) => setQueryFilter(event.target.value)}
+            placeholder="Search title or description"
+          />
+        </div>
+
+        <div className="filter-group">
           <label>Status</label>
           <select
             value={statusFilter}
@@ -253,10 +270,11 @@ function IncidentsPage() {
         <button
           className="btn-secondary"
           onClick={() => {
+            setQueryFilter("");
             setStatusFilter("");
             setSeverityFilter("");
           }}
-          disabled={!statusFilter && !severityFilter}
+          disabled={!queryFilter && !statusFilter && !severityFilter}
         >
           Clear Filters
         </button>
