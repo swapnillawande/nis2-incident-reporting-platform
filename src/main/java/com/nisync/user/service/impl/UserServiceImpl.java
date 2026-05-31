@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -160,10 +162,13 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public List<UserResponseDto> getAllUsers() {
-		logger.info("Fetching all users");
+	public List<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query) {
+		logger.info("Fetching users. status: {}, role: {}, query: {}", status, role, query);
 
-		return userRepository.findAll()
+		return userRepository.findAll(
+				buildUserSpecification(status, role, query),
+				Sort.by(Sort.Direction.DESC, "createdAt")
+		)
 				.stream()
 				.map(UserMapperDto::toResponse)
 				.toList();
@@ -245,6 +250,29 @@ public class UserServiceImpl implements UserService{
 	public void deleteAllUsers() {
 		logger.warn("Deleting all users");
 		userRepository.deleteAll();
+	}
+
+	private Specification<AppUser> buildUserSpecification(UserStatus status, RoleName role, String query) {
+		return (root, criteriaQuery, criteriaBuilder) -> {
+			var predicate = criteriaBuilder.conjunction();
+
+			if (status != null) {
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+			}
+
+			if (role != null) {
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.isMember(role, root.get("roles")));
+			}
+
+			if (query != null && !query.isBlank()) {
+				String searchTerm = "%" + query.trim().toLowerCase() + "%";
+				var fullNamePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), searchTerm);
+				var emailPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), searchTerm);
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.or(fullNamePredicate, emailPredicate));
+			}
+
+			return predicate;
+		};
 	}
 
 }

@@ -15,6 +15,8 @@ import com.nisync.user.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -30,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -122,13 +125,32 @@ public class UserServiceImplTest {
         AppUser firstUser = buildUser(1L, "First User", "first@test.com");
         AppUser secondUser = buildUser(2L, "Second User", "second@test.com");
 
-        when(userRepository.findAll()).thenReturn(List.of(firstUser, secondUser));
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort()))
+                .thenReturn(List.of(firstUser, secondUser));
 
-        List<UserResponseDto> response = userService.getAllUsers();
+        List<UserResponseDto> response = userService.getAllUsers(null, null, null);
 
         assertEquals(2, response.size());
         assertEquals("first@test.com", response.get(0).getEmail());
         assertEquals("second@test.com", response.get(1).getEmail());
+    }
+
+    @Test
+    void shouldFilterUsersSuccessfully() {
+        AppUser user = buildUser(1L, "Filtered User", "filtered@test.com");
+        user.setRoles(Set.of(RoleName.AUDITOR));
+
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(user));
+
+        List<UserResponseDto> response = userService.getAllUsers(
+                UserStatus.ACTIVE,
+                RoleName.AUDITOR,
+                "filtered"
+        );
+
+        assertEquals(1, response.size());
+        assertEquals("filtered@test.com", response.get(0).getEmail());
+        assertTrue(response.get(0).getRoles().contains(RoleName.AUDITOR));
     }
 
     @Test
@@ -191,6 +213,14 @@ public class UserServiceImplTest {
 
         return user;
     }
-}
 
+    private Specification<AppUser> anyUserSpecification() {
+        return any();
+    }
+
+    private Sort anyCreatedAtDescSort() {
+        return argThat(sort -> sort.getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
+    }
+}
 

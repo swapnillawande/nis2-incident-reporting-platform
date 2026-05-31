@@ -6,6 +6,8 @@ import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 
 public interface UserService {
 
@@ -17,7 +19,7 @@ public interface UserService {
     
     UserResponseDto getUserById(Long userId);
     
-    List<UserResponseDto> getAllUsers();
+    List<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query);
     
     UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail);
     

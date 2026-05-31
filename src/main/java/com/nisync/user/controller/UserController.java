@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 import com.nisync.user.service.UserService;
 
 import jakarta.validation.Valid;
@@ -90,10 +93,13 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<UserResponseDto> getAllUsers() {
-        logger.info("GET /users called");
+    public List<UserResponseDto> getAllUsers(
+            @RequestParam(name = "status", required = false) UserStatus status,
+            @RequestParam(name = "role", required = false) RoleName role,
+            @RequestParam(name = "q", required = false) String query) {
+        logger.info("GET /users called. status: {}, role: {}, query: {}", status, role, query);
 
-        return userService.getAllUsers();
+        return userService.getAllUsers(status, role, query);
     }
 
     @GetMapping("/{userId}")
