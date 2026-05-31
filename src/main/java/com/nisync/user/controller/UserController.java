@@ -66,7 +66,7 @@ public class UserController {
 
     @GetMapping("/email/{email}")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDto getUserByEmail(@PathVariable String email) {
+    public UserResponseDto getUserByEmail(@PathVariable("email") String email) {
         logger.info("GET /api/users/email/{} called", email);
 
         UserResponseDto response = userService.getUserByEmail(email);
@@ -98,7 +98,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDto getUserById(@PathVariable Long userId) {
+    public UserResponseDto getUserById(@PathVariable("userId") Long userId) {
         logger.info("GET /users/{} called", userId);
 
         return userService.getUserById(userId);
@@ -107,7 +107,7 @@ public class UserController {
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDto updateUserById(
-            @PathVariable Long userId,
+            @PathVariable("userId") Long userId,
             @RequestBody UserResponseDto userResponseDto) {
 
         logger.info("PUT /users/{} called", userId);
@@ -117,7 +117,7 @@ public class UserController {
 
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDto deleteUserById(@PathVariable Long userId) {
+    public UserResponseDto deleteUserById(@PathVariable("userId") Long userId) {
         logger.info("DELETE /users/{} called", userId);
 
         return userService.deleteUserById(userId);
