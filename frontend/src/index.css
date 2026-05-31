@@ -468,7 +468,7 @@ button:disabled {
    STATUS / SEVERITY PILLS
 ========================= */
 
-.status-pill, .severity-pill {
+.status-pill, .severity-pill, .sla-pill {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -504,6 +504,12 @@ button:disabled {
 .severity-medium   { color: #92400e; background: #fef3c7; }
 .severity-high     { color: #9f1239; background: #ffe4e6; }
 .severity-critical { color: #ffffff; background: #be123c; }
+
+.sla-overdue { color: #ffffff; background: #be123c; }
+.sla-due-soon { color: #92400e; background: #fef3c7; }
+.sla-on-track { color: #166534; background: #dcfce7; }
+.sla-completed { color: #475569; background: #e2e8f0; }
+.sla-no-sla { color: #334155; background: #e2e8f0; }
 
 /* =========================
    FILTER BAR / FORMS
