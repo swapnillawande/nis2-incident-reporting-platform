@@ -5,6 +5,9 @@ import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
 import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
+import com.nisync.incident.note.dto.CreateIncidentNoteRequestDto;
+import com.nisync.incident.note.dto.IncidentNoteResponseDto;
+import com.nisync.incident.note.service.IncidentNoteService;
 import com.nisync.incident.service.IncidentService;
 
 import jakarta.validation.Valid;
@@ -34,6 +37,9 @@ public class IncidentController {
 
     @Autowired
     private IncidentService incidentService;
+
+    @Autowired
+    private IncidentNoteService incidentNoteService;
 
     @PostMapping
     public IncidentResponseDto createIncident(
@@ -78,5 +84,23 @@ public class IncidentController {
         logger.info("DELETE /incidents/{} called", incidentId);
 
         return incidentService.deleteIncidentById(incidentId);
+    }
+
+    @GetMapping("/{incidentId}/notes")
+    public List<IncidentNoteResponseDto> getIncidentNotes(@PathVariable("incidentId") Long incidentId) {
+        logger.info("GET /incidents/{}/notes called", incidentId);
+
+        return incidentNoteService.getNotesByIncidentId(incidentId);
+    }
+
+    @PostMapping("/{incidentId}/notes")
+    public IncidentNoteResponseDto addIncidentNote(
+            @PathVariable("incidentId") Long incidentId,
+            @Valid @RequestBody CreateIncidentNoteRequestDto request,
+            Authentication authentication) {
+
+        logger.info("POST /incidents/{}/notes called by {}", incidentId, authentication.getName());
+
+        return incidentNoteService.addNote(incidentId, request, authentication.getName());
     }
 }
