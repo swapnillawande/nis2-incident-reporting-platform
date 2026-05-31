@@ -190,7 +190,7 @@ function Navbar({ theme, onToggleTheme }: NavbarProps) {
                 </div>
                 <button
                   onClick={handleLogout}
-                  style={{ minHeight: 36, width: "100%", marginTop: 0, background: "transparent", boxShadow: "none" }}
+                  style={{ color: "#FF9A86", minHeight: 36, width: "100%", marginTop: 0, background: "transparent", boxShadow: "none" }}
 
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
                 >
