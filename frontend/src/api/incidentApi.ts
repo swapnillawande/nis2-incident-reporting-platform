@@ -19,6 +19,30 @@ export interface IncidentFilters {
   query?: string;
 }
 
+const cleanCreateIncidentPayload = (
+  data: CreateIncidentRequest
+): CreateIncidentRequest => ({
+  ...data,
+  assignedToEmail: data.assignedToEmail?.trim() || undefined,
+  dueAt: data.dueAt || undefined,
+});
+
+const cleanUpdateIncidentPayload = (
+  data: UpdateIncidentRequest
+): UpdateIncidentRequest => {
+  const payload: UpdateIncidentRequest = {
+    ...data,
+    assignedToEmail: data.assignedToEmail?.trim() ?? data.assignedToEmail,
+  };
+
+  if (data.dueAt === "") {
+    delete payload.dueAt;
+    payload.clearDueAt = true;
+  }
+
+  return payload;
+};
+
 export const getAllIncidents = async (
   filters: IncidentFilters = {}
 ): Promise<IncidentResponse[]> => {
@@ -37,7 +61,7 @@ export const getAllIncidents = async (
 export const createIncident = async (
   data: CreateIncidentRequest
 ): Promise<IncidentResponse> => {
-  const response = await axios.post(`${API_BASE_URL}/incidents`, data, {
+  const response = await axios.post(`${API_BASE_URL}/incidents`, cleanCreateIncidentPayload(data), {
     headers: getAuthHeader(),
   });
 
@@ -48,9 +72,13 @@ export const updateIncident = async (
   incidentId: number,
   data: UpdateIncidentRequest
 ): Promise<IncidentResponse> => {
-  const response = await axios.put(`${API_BASE_URL}/incidents/${incidentId}`, data, {
-    headers: getAuthHeader(),
-  });
+  const response = await axios.put(
+    `${API_BASE_URL}/incidents/${incidentId}`,
+    cleanUpdateIncidentPayload(data),
+    {
+      headers: getAuthHeader(),
+    }
+  );
 
   return response.data;
 };

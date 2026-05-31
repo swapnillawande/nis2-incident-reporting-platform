@@ -30,6 +30,7 @@ export interface UpdateIncidentRequest {
   status?: IncidentStatus;
   assignedToEmail?: string;
   dueAt?: string;
+  clearDueAt?: boolean;
 }
 
 export interface IncidentNote {
