@@ -19,9 +19,9 @@ public interface UserService {
     
     List<UserResponseDto> getAllUsers();
     
-    UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto);
+    UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail);
     
-    UserResponseDto deleteUserById(Long userId);
+    UserResponseDto deleteUserById(Long userId, String actorEmail);
     
     void deleteAllUsers();
     

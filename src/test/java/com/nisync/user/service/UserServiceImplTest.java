@@ -1,5 +1,6 @@
 package com.nisync.user.service;
 
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
@@ -38,6 +39,7 @@ public class UserServiceImplTest {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private JwtService jwtService;
+    private AuditLogService auditLogService;
     private UserServiceImpl userService;
 
     @BeforeEach
@@ -45,12 +47,15 @@ public class UserServiceImplTest {
         userRepository = mock(UserRepository.class);
         passwordEncoder = mock(PasswordEncoder.class);
         jwtService = mock(JwtService.class);
+        auditLogService = mock(AuditLogService.class);
 
         userService = new UserServiceImpl();
 
         ReflectionTestUtils.setField(userService, "userRepository", userRepository);
         ReflectionTestUtils.setField(userService, "passwordEncoder", passwordEncoder);
-        ReflectionTestUtils.setField(userService, "jwtService", jwtService);    }
+        ReflectionTestUtils.setField(userService, "jwtService", jwtService);
+        ReflectionTestUtils.setField(userService, "auditLogService", auditLogService);
+    }
 
     @Test
     void shouldRegisterUserSuccessfully() {
@@ -139,7 +144,7 @@ public class UserServiceImplTest {
         when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserResponseDto response = userService.updateUserById(1L, updateRequest);
+        UserResponseDto response = userService.updateUserById(1L, updateRequest, "admin@nis2.com");
 
         assertEquals("New Name", response.getFullName());
         assertEquals("new@test.com", response.getEmail());
@@ -155,7 +160,10 @@ public class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.existsByEmail("taken@test.com")).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> userService.updateUserById(1L, updateRequest));
+        assertThrows(
+                DuplicateResourceException.class,
+                () -> userService.updateUserById(1L, updateRequest, "admin@nis2.com")
+        );
     }
 
     @Test
@@ -164,7 +172,7 @@ public class UserServiceImplTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        UserResponseDto response = userService.deleteUserById(1L);
+        UserResponseDto response = userService.deleteUserById(1L, "admin@nis2.com");
 
         assertEquals(1L, response.getId());
         verify(userRepository).delete(user);
@@ -184,6 +192,5 @@ public class UserServiceImplTest {
         return user;
     }
 }
-
 
 

@@ -108,19 +108,22 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDto updateUserById(
             @PathVariable("userId") Long userId,
-            @RequestBody UserResponseDto userResponseDto) {
+            @RequestBody UserResponseDto userResponseDto,
+            Authentication authentication) {
 
-        logger.info("PUT /users/{} called", userId);
+        logger.info("PUT /users/{} called by {}", userId, authentication.getName());
 
-        return userService.updateUserById(userId, userResponseDto);
+        return userService.updateUserById(userId, userResponseDto, authentication.getName());
     }
 
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDto deleteUserById(@PathVariable("userId") Long userId) {
-        logger.info("DELETE /users/{} called", userId);
+    public UserResponseDto deleteUserById(
+            @PathVariable("userId") Long userId,
+            Authentication authentication) {
+        logger.info("DELETE /users/{} called by {}", userId, authentication.getName());
 
-        return userService.deleteUserById(userId);
+        return userService.deleteUserById(userId, authentication.getName());
     }
     
     

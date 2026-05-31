@@ -16,7 +16,7 @@ public interface IncidentService {
 
     IncidentResponseDto getIncidentById(Long incidentId);
 
-    IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request);
+    IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail);
 
-    IncidentResponseDto deleteIncidentById(Long incidentId);
+    IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail);
 }

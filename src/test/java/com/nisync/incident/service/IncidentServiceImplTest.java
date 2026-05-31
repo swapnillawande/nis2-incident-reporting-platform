@@ -1,6 +1,7 @@
 package com.nisync.incident.service;
 
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
@@ -30,14 +31,17 @@ import static org.mockito.Mockito.when;
 class IncidentServiceImplTest {
 
     private IncidentRepository incidentRepository;
+    private AuditLogService auditLogService;
     private IncidentServiceImpl incidentService;
 
     @BeforeEach
     void setUp() {
         incidentRepository = mock(IncidentRepository.class);
+        auditLogService = mock(AuditLogService.class);
         incidentService = new IncidentServiceImpl();
 
         ReflectionTestUtils.setField(incidentService, "incidentRepository", incidentRepository);
+        ReflectionTestUtils.setField(incidentService, "auditLogService", auditLogService);
     }
 
     @Test
@@ -129,7 +133,7 @@ class IncidentServiceImplTest {
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        IncidentResponseDto response = incidentService.updateIncidentById(1L, request);
+        IncidentResponseDto response = incidentService.updateIncidentById(1L, request, "admin@nis2.com");
 
         assertEquals("Updated Incident", response.getTitle());
         assertEquals(IncidentSeverity.CRITICAL, response.getSeverity());
@@ -142,7 +146,7 @@ class IncidentServiceImplTest {
 
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
 
-        IncidentResponseDto response = incidentService.deleteIncidentById(1L);
+        IncidentResponseDto response = incidentService.deleteIncidentById(1L, "admin@nis2.com");
 
         assertEquals(1L, response.getId());
         verify(incidentRepository).delete(incident);

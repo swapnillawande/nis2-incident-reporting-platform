@@ -72,19 +72,22 @@ public class IncidentController {
     @PutMapping("/{incidentId}")
     public IncidentResponseDto updateIncidentById(
             @PathVariable("incidentId") Long incidentId,
-            @Valid @RequestBody UpdateIncidentRequestDto request) {
+            @Valid @RequestBody UpdateIncidentRequestDto request,
+            Authentication authentication) {
 
-        logger.info("PUT /incidents/{} called", incidentId);
+        logger.info("PUT /incidents/{} called by {}", incidentId, authentication.getName());
 
-        return incidentService.updateIncidentById(incidentId, request);
+        return incidentService.updateIncidentById(incidentId, request, authentication.getName());
     }
 
     @DeleteMapping("/{incidentId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SECURITY_ANALYST')")
-    public IncidentResponseDto deleteIncidentById(@PathVariable("incidentId") Long incidentId) {
-        logger.info("DELETE /incidents/{} called", incidentId);
+    public IncidentResponseDto deleteIncidentById(
+            @PathVariable("incidentId") Long incidentId,
+            Authentication authentication) {
+        logger.info("DELETE /incidents/{} called by {}", incidentId, authentication.getName());
 
-        return incidentService.deleteIncidentById(incidentId);
+        return incidentService.deleteIncidentById(incidentId, authentication.getName());
     }
 
     @GetMapping("/{incidentId}/notes")
