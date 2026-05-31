@@ -2,6 +2,9 @@ package com.nisync.dashboard.service;
 
 import com.nisync.dashboard.dto.DashboardSummaryDto;
 import com.nisync.dashboard.service.impl.DashboardServiceImpl;
+import com.nisync.incident.dto.IncidentResponseDto;
+import com.nisync.incident.entity.Incident;
+import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
 import com.nisync.user.repository.UserRepository;
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -61,5 +65,33 @@ class DashboardServiceImplTest {
         assertEquals(2L, response.getOverdueIncidents());
         assertEquals(1L, response.getDueSoonIncidents());
         assertEquals(3L, response.getUnscheduledActiveIncidents());
+    }
+
+    @Test
+    void shouldGetRecentActiveIncidentsSuccessfully() {
+        Incident incident = buildIncident(1L, "Suspicious login");
+
+        when(incidentRepository.findTop5ByStatusInOrderByCreatedAtDesc(any())).thenReturn(List.of(incident));
+
+        List<IncidentResponseDto> response = dashboardService.getRecentActiveIncidents();
+
+        assertEquals(1, response.size());
+        assertEquals(1L, response.get(0).getId());
+        assertEquals("Suspicious login", response.get(0).getTitle());
+        assertEquals(IncidentStatus.OPEN, response.get(0).getStatus());
+    }
+
+    private Incident buildIncident(Long id, String title) {
+        Incident incident = new Incident();
+        incident.setId(id);
+        incident.setTitle(title);
+        incident.setDescription("Incident description with enough detail.");
+        incident.setSeverity(IncidentSeverity.HIGH);
+        incident.setStatus(IncidentStatus.OPEN);
+        incident.setReportedByEmail("admin@nis2.com");
+        incident.setCreatedAt(LocalDateTime.now());
+        incident.setUpdatedAt(LocalDateTime.now());
+
+        return incident;
     }
 }

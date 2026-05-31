@@ -2,6 +2,8 @@ package com.nisync.dashboard.service.impl;
 
 import com.nisync.dashboard.dto.DashboardSummaryDto;
 import com.nisync.dashboard.service.DashboardService;
+import com.nisync.incident.dto.IncidentMapperDto;
+import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
 import com.nisync.user.repository.UserRepository;
@@ -28,10 +30,7 @@ public class DashboardServiceImpl implements DashboardService {
         long resolvedIncidents = incidentRepository.countByStatus(IncidentStatus.RESOLVED);
         long closedIncidents = incidentRepository.countByStatus(IncidentStatus.CLOSED);
         LocalDateTime now = LocalDateTime.now();
-        List<IncidentStatus> activeStatuses = List.of(
-                IncidentStatus.OPEN,
-                IncidentStatus.IN_PROGRESS
-        );
+        List<IncidentStatus> activeStatuses = getActiveStatuses();
 
         return new DashboardSummaryDto(
                 userRepository.count(),
@@ -43,6 +42,21 @@ public class DashboardServiceImpl implements DashboardService {
                 incidentRepository.countByDueAtBeforeAndStatusIn(now, activeStatuses),
                 incidentRepository.countByDueAtBetweenAndStatusIn(now, now.plusHours(24), activeStatuses),
                 incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses)
+        );
+    }
+
+    @Override
+    public List<IncidentResponseDto> getRecentActiveIncidents() {
+        return incidentRepository.findTop5ByStatusInOrderByCreatedAtDesc(getActiveStatuses())
+                .stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
+    }
+
+    private List<IncidentStatus> getActiveStatuses() {
+        return List.of(
+                IncidentStatus.OPEN,
+                IncidentStatus.IN_PROGRESS
         );
     }
 }

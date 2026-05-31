@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSpecificationExecutor<Incident> {
 
@@ -21,4 +22,6 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
             Collection<IncidentStatus> statuses);
 
     long countByDueAtIsNullAndStatusIn(Collection<IncidentStatus> statuses);
+
+    List<Incident> findTop5ByStatusInOrderByCreatedAtDesc(Collection<IncidentStatus> statuses);
 }
