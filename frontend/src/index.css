@@ -528,6 +528,15 @@ button:disabled {
 
 .incident-form { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; }
 .incident-form .btn-primary { grid-column: 1 / -1; }
+
+.incident-create-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px;
+  margin-top: 24px;
+}
+
 .span-2 { grid-column: 1 / -1; }
 
 /* =========================
@@ -602,6 +611,12 @@ button:disabled {
 .role-option input { width: 18px; height: 18px; padding: 0; }
 .role-option span { font-size: 13px; font-weight: 800; color: #334155; }
 :root[data-theme="dark"] .role-option span { color: #dbeafe; }
+/* Add to the DARK MODE CARD SURFACES section */
+:root[data-theme="dark"] .incident-create-panel {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: var(--border);
+}
+
 
 .modal-actions { justify-content: flex-end; }
 

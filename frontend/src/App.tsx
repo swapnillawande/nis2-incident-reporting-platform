@@ -136,7 +136,8 @@ function Navbar({ theme, onToggleTheme }: NavbarProps) {
           type="button"
           onClick={onToggleTheme}
           aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
-          className="flex h-1 w-1 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+          style={{ width: 36, minHeight: 36, marginTop: 0 }}
+          className="flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
         >
           {isDark ? (
             /* Sun icon */
@@ -165,6 +166,8 @@ function Navbar({ theme, onToggleTheme }: NavbarProps) {
             <button
               type="button"
               onClick={() => setUserMenuOpen((v) => !v)}
+              style={{ minHeight: 36, width: "auto", marginTop: 0 }}
+
               className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 text-xs font-bold text-white">
@@ -187,6 +190,8 @@ function Navbar({ theme, onToggleTheme }: NavbarProps) {
                 </div>
                 <button
                   onClick={handleLogout}
+                  style={{ minHeight: 36, width: "100%", marginTop: 0, background: "transparent", boxShadow: "none" }}
+
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
