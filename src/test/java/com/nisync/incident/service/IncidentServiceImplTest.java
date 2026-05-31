@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -146,6 +147,21 @@ class IncidentServiceImplTest {
         assertEquals(IncidentStatus.IN_PROGRESS, response.getStatus());
         assertEquals("lead@nis2.com", response.getAssignedToEmail());
         assertEquals(LocalDateTime.of(2026, 6, 2, 18, 30), response.getDueAt());
+    }
+
+    @Test
+    void shouldClearIncidentDueAtSuccessfully() {
+        Incident incident = buildIncident(1L, "SLA Incident");
+        UpdateIncidentRequestDto request = new UpdateIncidentRequestDto();
+        request.setClearDueAt(true);
+
+        when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
+        when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IncidentResponseDto response = incidentService.updateIncidentById(1L, request, "admin@nis2.com");
+
+        assertEquals("SLA Incident", response.getTitle());
+        assertNull(response.getDueAt());
     }
 
     @Test

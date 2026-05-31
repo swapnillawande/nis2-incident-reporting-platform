@@ -24,6 +24,8 @@ public class UpdateIncidentRequestDto {
 
     private LocalDateTime dueAt;
 
+    private Boolean clearDueAt;
+
     public String getTitle() {
         return title;
     }
@@ -70,5 +72,13 @@ public class UpdateIncidentRequestDto {
 
     public void setDueAt(LocalDateTime dueAt) {
         this.dueAt = dueAt;
+    }
+
+    public Boolean getClearDueAt() {
+        return clearDueAt;
+    }
+
+    public void setClearDueAt(Boolean clearDueAt) {
+        this.clearDueAt = clearDueAt;
     }
 }

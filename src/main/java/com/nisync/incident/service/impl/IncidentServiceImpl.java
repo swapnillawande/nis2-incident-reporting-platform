@@ -104,7 +104,9 @@ public class IncidentServiceImpl implements IncidentService {
             incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
         }
 
-        if (request.getDueAt() != null) {
+        if (Boolean.TRUE.equals(request.getClearDueAt())) {
+            incident.setDueAt(null);
+        } else if (request.getDueAt() != null) {
             incident.setDueAt(request.getDueAt());
         }
 
