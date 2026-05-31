@@ -7,6 +7,9 @@ import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.audit.service.AuditLogService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,10 +39,46 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public List<AuditLogResponseDto> getRecentAuditLogs() {
-        return auditLogRepository.findTop100ByOrderByCreatedAtDesc()
+    public List<AuditLogResponseDto> getRecentAuditLogs(String action, String resourceType, String query) {
+        return auditLogRepository.findAll(
+                buildAuditLogSpecification(action, resourceType, query),
+                        PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"))
+                )
                 .stream()
                 .map(AuditLogMapperDto::toResponse)
                 .toList();
+    }
+
+    private Specification<AuditLog> buildAuditLogSpecification(String action, String resourceType, String query) {
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
+
+            if (action != null && !action.isBlank()) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.equal(root.get("action"), action.trim())
+                );
+            }
+
+            if (resourceType != null && !resourceType.isBlank()) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.equal(root.get("resourceType"), resourceType.trim())
+                );
+            }
+
+            if (query != null && !query.isBlank()) {
+                String searchTerm = "%" + query.trim().toLowerCase() + "%";
+                var actorPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("actorEmail")), searchTerm);
+                var detailsPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("details")), searchTerm);
+                var resourceIdPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceId")), searchTerm);
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.or(actorPredicate, detailsPredicate, resourceIdPredicate)
+                );
+            }
+
+            return predicate;
+        };
     }
 }

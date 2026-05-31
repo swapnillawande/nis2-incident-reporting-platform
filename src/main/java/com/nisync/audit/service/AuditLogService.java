@@ -8,5 +8,5 @@ public interface AuditLogService {
 
     AuditLogResponseDto record(String action, String resourceType, Object resourceId, String actorEmail, String details);
 
-    List<AuditLogResponseDto> getRecentAuditLogs();
+    List<AuditLogResponseDto> getRecentAuditLogs(String action, String resourceType, String query);
 }

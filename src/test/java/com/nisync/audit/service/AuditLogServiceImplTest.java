@@ -7,6 +7,10 @@ import com.nisync.audit.service.impl.AuditLogServiceImpl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -65,12 +69,42 @@ class AuditLogServiceImplTest {
         auditLog.setDetails("User login");
         auditLog.setCreatedAt(LocalDateTime.now());
 
-        when(auditLogRepository.findTop100ByOrderByCreatedAtDesc()).thenReturn(List.of(auditLog));
+        when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(auditLog)));
 
-        List<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs();
+        List<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(null, null, null);
 
         assertEquals(1, response.size());
         assertEquals("USER_LOGIN", response.get(0).getAction());
         assertEquals("admin@nis2.com", response.get(0).getActorEmail());
+    }
+
+    @Test
+    void shouldReturnFilteredAuditLogs() {
+        AuditLog auditLog = new AuditLog();
+        auditLog.setId(2L);
+        auditLog.setAction("INCIDENT_UPDATED");
+        auditLog.setResourceType("INCIDENT");
+        auditLog.setResourceId("9");
+        auditLog.setActorEmail("analyst@nis2.com");
+        auditLog.setDetails("Incident updated");
+        auditLog.setCreatedAt(LocalDateTime.now());
+
+        when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(auditLog)));
+
+        List<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(
+                "INCIDENT_UPDATED",
+                "INCIDENT",
+                "analyst"
+        );
+
+        assertEquals(1, response.size());
+        assertEquals("INCIDENT_UPDATED", response.get(0).getAction());
+        assertEquals("INCIDENT", response.get(0).getResourceType());
+    }
+
+    private Specification<AuditLog> anyAuditLogSpecification() {
+        return any();
     }
 }

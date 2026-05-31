@@ -3,10 +3,7 @@ package com.nisync.audit.repository;
 import com.nisync.audit.entity.AuditLog;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
-
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
-
-    List<AuditLog> findTop100ByOrderByCreatedAtDesc();
+public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSpecificationExecutor<AuditLog> {
 }
