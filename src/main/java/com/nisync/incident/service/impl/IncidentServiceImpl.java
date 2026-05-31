@@ -61,11 +61,21 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query) {
-        logger.info("Fetching incidents. status: {}, severity: {}, query: {}", status, severity, query);
+    public List<IncidentResponseDto> getIncidents(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String assignedToEmail,
+            String query) {
+        logger.info(
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query
+        );
 
         return incidentRepository.findAll(
-                        buildIncidentSpecification(status, severity, query),
+                        buildIncidentSpecification(status, severity, assignedToEmail, query),
                         Sort.by(Sort.Direction.DESC, "createdAt")
                 )
                 .stream()
@@ -170,6 +180,7 @@ public class IncidentServiceImpl implements IncidentService {
     private Specification<Incident> buildIncidentSpecification(
             IncidentStatus status,
             IncidentSeverity severity,
+            String assignedToEmail,
             String query) {
 
         return (root, criteriaQuery, criteriaBuilder) -> {
@@ -181,6 +192,16 @@ public class IncidentServiceImpl implements IncidentService {
 
             if (severity != null) {
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("severity"), severity));
+            }
+
+            if (assignedToEmail != null && !assignedToEmail.isBlank()) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.equal(
+                                criteriaBuilder.lower(root.get("assignedToEmail")),
+                                assignedToEmail.trim().toLowerCase()
+                        )
+                );
             }
 
             if (query != null && !query.isBlank()) {

@@ -84,7 +84,7 @@ class IncidentServiceImplTest {
         when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort()))
                 .thenReturn(List.of(firstIncident, secondIncident));
 
-        List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null);
+        List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null, null);
 
         assertEquals(2, response.size());
         assertEquals("First Incident", response.get(0).getTitle());
@@ -102,12 +102,14 @@ class IncidentServiceImplTest {
         List<IncidentResponseDto> response = incidentService.getIncidents(
                 IncidentStatus.IN_PROGRESS,
                 IncidentSeverity.HIGH,
+                "analyst@nis2.com",
                 "filtered"
         );
 
         assertEquals(1, response.size());
         assertEquals(IncidentStatus.IN_PROGRESS, response.get(0).getStatus());
         assertEquals(IncidentSeverity.HIGH, response.get(0).getSeverity());
+        assertEquals("analyst@nis2.com", response.get(0).getAssignedToEmail());
     }
 
     @Test

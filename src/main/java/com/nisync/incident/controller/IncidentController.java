@@ -55,11 +55,18 @@ public class IncidentController {
     public List<IncidentResponseDto> getIncidents(
             @RequestParam(name = "status", required = false) IncidentStatus status,
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
+            @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
             @RequestParam(name = "q", required = false) String query) {
 
-        logger.info("GET /incidents called. status: {}, severity: {}, query: {}", status, severity, query);
+        logger.info(
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query
+        );
 
-        return incidentService.getIncidents(status, severity, query);
+        return incidentService.getIncidents(status, severity, assignedToEmail, query);
     }
 
     @GetMapping("/{incidentId}")
