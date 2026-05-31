@@ -1,25 +1,37 @@
 import { useEffect, useState } from "react";
-import { getDashboardSummary } from "../api/dashboardApi";
+import { getDashboardSummary, getRecentActiveIncidents } from "../api/dashboardApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import { getCurrentUser } from "../api/userApi";
 import type { DashboardSummary } from "../types/dashboard";
+import type { IncidentResponse } from "../types/incident";
 import type { UserResponse } from "../types/user";
+
+const formatDateTime = (dateTime?: string | null) => {
+  if (!dateTime) {
+    return "No SLA";
+  }
+
+  return new Date(dateTime).toLocaleString();
+};
 
 function DashboardPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [recentIncidents, setRecentIncidents] = useState<IncidentResponse[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const [currentUser, dashboardSummary] = await Promise.all([
+        const [currentUser, dashboardSummary, activeIncidents] = await Promise.all([
           getCurrentUser(),
           getDashboardSummary(),
+          getRecentActiveIncidents(),
         ]);
 
         setUser(currentUser);
         setSummary(dashboardSummary);
+        setRecentIncidents(activeIncidents);
       } catch (error: unknown) {
         console.error("Failed to fetch dashboard:", error);
 
@@ -112,6 +124,39 @@ function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <section className="dashboard-section">
+        <div className="dashboard-section-header">
+          <div>
+            <span className="badge">Triage Queue</span>
+            <h2>Recent Active Incidents</h2>
+          </div>
+        </div>
+
+        {recentIncidents.length === 0 ? (
+          <p className="text-muted">No active incidents in the triage queue.</p>
+        ) : (
+          <div className="recent-incident-list">
+            {recentIncidents.map((incident) => (
+              <article className="recent-incident-item" key={incident.id}>
+                <div>
+                  <strong>{incident.title}</strong>
+                  <span>{incident.description}</span>
+                </div>
+                <div className="recent-incident-meta">
+                  <span className={`severity-pill severity-${incident.severity.toLowerCase()}`}>
+                    {incident.severity}
+                  </span>
+                  <span className={`status-pill status-${incident.status.toLowerCase().replace("_", "-")}`}>
+                    {incident.status.replace("_", " ")}
+                  </span>
+                  <small>SLA: {formatDateTime(incident.dueAt)}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -403,6 +403,74 @@ button:disabled {
 :root[data-theme="dark"] .dashboard-card-neutral strong { color: #cbd5e1; }
 :root[data-theme="dark"] .dashboard-card-success strong { color: #34d399; }
 
+.dashboard-section {
+  margin-top: 24px;
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.dashboard-section-header h2 {
+  margin: 12px 0 0;
+  font-size: 28px;
+}
+
+.recent-incident-list {
+  display: grid;
+  gap: 12px;
+}
+
+.recent-incident-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+:root[data-theme="dark"] .recent-incident-item { background: rgba(15, 23, 42, 0.74); }
+
+.recent-incident-item strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 15px;
+}
+
+.recent-incident-item span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.recent-incident-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 300px;
+}
+
+.recent-incident-meta small {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
 /* =========================
    USER MANAGEMENT
 ========================= */
@@ -741,6 +809,9 @@ button:disabled {
   .dashboard-hero { padding: 28px 22px; }
   .page-header, .table-panel, .modal-panel { padding: 22px; border-radius: 22px; }
   .form-grid, .filter-bar, .incident-form, .role-list { grid-template-columns: 1fr; }
+  .recent-incident-item { grid-template-columns: 1fr; align-items: start; }
+  .recent-incident-meta { justify-content: flex-start; max-width: none; }
+  .recent-incident-meta small { text-align: left; }
   .modal-actions { align-items: stretch; flex-direction: column-reverse; }
   .note-composer { grid-template-columns: 1fr; }
   .modal-actions button, .note-composer button, .page-header button { width: 100%; }
