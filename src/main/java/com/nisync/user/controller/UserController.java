@@ -1,9 +1,14 @@
 package com.nisync.user.controller;
 
+import java.util.List;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,6 +65,7 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDto getUserByEmail(@PathVariable String email) {
         logger.info("GET /api/users/email/{} called", email);
 
@@ -80,6 +86,41 @@ public class UserController {
         logger.info("GET /users/me called for authenticated user: {}", email);
 
         return userService.getUserByEmail(email);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserResponseDto> getAllUsers() {
+        logger.info("GET /users called");
+
+        return userService.getAllUsers();
+    }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponseDto getUserById(@PathVariable Long userId) {
+        logger.info("GET /users/{} called", userId);
+
+        return userService.getUserById(userId);
+    }
+
+    @PutMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponseDto updateUserById(
+            @PathVariable Long userId,
+            @RequestBody UserResponseDto userResponseDto) {
+
+        logger.info("PUT /users/{} called", userId);
+
+        return userService.updateUserById(userId, userResponseDto);
+    }
+
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponseDto deleteUserById(@PathVariable Long userId) {
+        logger.info("DELETE /users/{} called", userId);
+
+        return userService.deleteUserById(userId);
     }
     
     
