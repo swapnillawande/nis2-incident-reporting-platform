@@ -9,6 +9,7 @@ export interface IncidentResponse {
   severity: IncidentSeverity;
   status: IncidentStatus;
   reportedByEmail: string;
+  assignedToEmail: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +18,7 @@ export interface CreateIncidentRequest {
   title: string;
   description: string;
   severity: IncidentSeverity;
+  assignedToEmail?: string;
 }
 
 export interface UpdateIncidentRequest {
@@ -24,6 +26,7 @@ export interface UpdateIncidentRequest {
   description?: string;
   severity?: IncidentSeverity;
   status?: IncidentStatus;
+  assignedToEmail?: string;
 }
 
 export interface IncidentNote {
