@@ -1,19 +1,27 @@
 import { useEffect, useState } from "react";
+import { getDashboardSummary } from "../api/dashboardApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import { getCurrentUser } from "../api/userApi";
+import type { DashboardSummary } from "../types/dashboard";
 import type { UserResponse } from "../types/user";
 
 function DashboardPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    const fetchDashboard = async () => {
       try {
-        const response = await getCurrentUser();
-        setUser(response);
+        const [currentUser, dashboardSummary] = await Promise.all([
+          getCurrentUser(),
+          getDashboardSummary(),
+        ]);
+
+        setUser(currentUser);
+        setSummary(dashboardSummary);
       } catch (error: unknown) {
-        console.error("Failed to fetch current user:", error);
+        console.error("Failed to fetch dashboard:", error);
 
         const errorMessage = getApiErrorMessage(
           error,
@@ -25,8 +33,11 @@ function DashboardPage() {
       }
     };
 
-    fetchCurrentUser();
+    fetchDashboard();
   }, []);
+
+  const activeIncidents =
+    (summary?.openIncidents ?? 0) + (summary?.inProgressIncidents ?? 0);
 
   return (
     <div className="page-container">
@@ -56,23 +67,23 @@ function DashboardPage() {
 
       <div className="dashboard-grid">
         <div className="dashboard-card">
-          <span>Total Assets</span>
-          <strong>0</strong>
+          <span>Total Users</span>
+          <strong>{summary ? summary.totalUsers : "--"}</strong>
         </div>
 
         <div className="dashboard-card">
-          <span>Open Alerts</span>
-          <strong>0</strong>
+          <span>Total Incidents</span>
+          <strong>{summary ? summary.totalIncidents : "--"}</strong>
         </div>
 
         <div className="dashboard-card">
           <span>Open Incidents</span>
-          <strong>0</strong>
+          <strong>{summary ? summary.openIncidents : "--"}</strong>
         </div>
 
         <div className="dashboard-card">
-          <span>Pending Reports</span>
-          <strong>0</strong>
+          <span>Active Work</span>
+          <strong>{summary ? activeIncidents : "--"}</strong>
         </div>
       </div>
     </div>

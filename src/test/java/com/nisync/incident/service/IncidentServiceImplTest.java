@@ -1,6 +1,7 @@
 package com.nisync.incident.service;
 
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
@@ -12,6 +13,7 @@ import com.nisync.incident.service.impl.IncidentServiceImpl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -29,14 +31,17 @@ import static org.mockito.Mockito.when;
 class IncidentServiceImplTest {
 
     private IncidentRepository incidentRepository;
+    private AuditLogService auditLogService;
     private IncidentServiceImpl incidentService;
 
     @BeforeEach
     void setUp() {
         incidentRepository = mock(IncidentRepository.class);
+        auditLogService = mock(AuditLogService.class);
         incidentService = new IncidentServiceImpl();
 
         ReflectionTestUtils.setField(incidentService, "incidentRepository", incidentRepository);
+        ReflectionTestUtils.setField(incidentService, "auditLogService", auditLogService);
     }
 
     @Test
@@ -69,9 +74,9 @@ class IncidentServiceImplTest {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");
 
-        when(incidentRepository.findAll()).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(firstIncident, secondIncident));
 
-        List<IncidentResponseDto> response = incidentService.getIncidents(null, null);
+        List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null);
 
         assertEquals(2, response.size());
         assertEquals("First Incident", response.get(0).getTitle());
@@ -84,14 +89,12 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.IN_PROGRESS);
         incident.setSeverity(IncidentSeverity.HIGH);
 
-        when(incidentRepository.findByStatusAndSeverity(
-                IncidentStatus.IN_PROGRESS,
-                IncidentSeverity.HIGH
-        )).thenReturn(List.of(incident));
+        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(incident));
 
         List<IncidentResponseDto> response = incidentService.getIncidents(
                 IncidentStatus.IN_PROGRESS,
-                IncidentSeverity.HIGH
+                IncidentSeverity.HIGH,
+                "filtered"
         );
 
         assertEquals(1, response.size());
@@ -130,7 +133,7 @@ class IncidentServiceImplTest {
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        IncidentResponseDto response = incidentService.updateIncidentById(1L, request);
+        IncidentResponseDto response = incidentService.updateIncidentById(1L, request, "admin@nis2.com");
 
         assertEquals("Updated Incident", response.getTitle());
         assertEquals(IncidentSeverity.CRITICAL, response.getSeverity());
@@ -143,7 +146,7 @@ class IncidentServiceImplTest {
 
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
 
-        IncidentResponseDto response = incidentService.deleteIncidentById(1L);
+        IncidentResponseDto response = incidentService.deleteIncidentById(1L, "admin@nis2.com");
 
         assertEquals(1L, response.getId());
         verify(incidentRepository).delete(incident);
@@ -161,5 +164,9 @@ class IncidentServiceImplTest {
         incident.setUpdatedAt(LocalDateTime.now());
 
         return incident;
+    }
+
+    private Specification<Incident> anyIncidentSpecification() {
+        return any();
     }
 }

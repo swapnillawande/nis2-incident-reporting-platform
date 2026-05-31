@@ -12,11 +12,11 @@ public interface IncidentService {
 
     IncidentResponseDto createIncident(CreateIncidentRequestDto request, String reportedByEmail);
 
-    List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity);
+    List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query);
 
     IncidentResponseDto getIncidentById(Long incidentId);
 
-    IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request);
+    IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail);
 
-    IncidentResponseDto deleteIncidentById(Long incidentId);
+    IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail);
 }

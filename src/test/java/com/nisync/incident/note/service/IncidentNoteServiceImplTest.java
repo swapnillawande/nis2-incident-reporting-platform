@@ -1,5 +1,6 @@
 package com.nisync.incident.note.service;
 
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.common.exception.ResourceNotFoundException;
 import com.nisync.incident.entity.Incident;
 import com.nisync.incident.enums.IncidentSeverity;
@@ -29,16 +30,19 @@ class IncidentNoteServiceImplTest {
 
     private IncidentRepository incidentRepository;
     private IncidentNoteRepository incidentNoteRepository;
+    private AuditLogService auditLogService;
     private IncidentNoteServiceImpl incidentNoteService;
 
     @BeforeEach
     void setUp() {
         incidentRepository = mock(IncidentRepository.class);
         incidentNoteRepository = mock(IncidentNoteRepository.class);
+        auditLogService = mock(AuditLogService.class);
         incidentNoteService = new IncidentNoteServiceImpl();
 
         ReflectionTestUtils.setField(incidentNoteService, "incidentRepository", incidentRepository);
         ReflectionTestUtils.setField(incidentNoteService, "incidentNoteRepository", incidentNoteRepository);
+        ReflectionTestUtils.setField(incidentNoteService, "auditLogService", auditLogService);
     }
 
     @Test

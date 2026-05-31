@@ -1,6 +1,7 @@
 package com.nisync.incident.service.impl;
 
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -14,6 +15,7 @@ import com.nisync.incident.service.IncidentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,6 +27,9 @@ public class IncidentServiceImpl implements IncidentService {
 
     @Autowired
     private IncidentRepository incidentRepository;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     @Override
     public IncidentResponseDto createIncident(CreateIncidentRequestDto request, String reportedByEmail) {
@@ -39,16 +44,24 @@ public class IncidentServiceImpl implements IncidentService {
 
         Incident savedIncident = incidentRepository.save(incident);
 
+        auditLogService.record(
+                "INCIDENT_CREATED",
+                "INCIDENT",
+                savedIncident.getId(),
+                reportedByEmail,
+                "Incident created: " + savedIncident.getTitle()
+        );
+
         logger.info("Incident created successfully. incidentId: {}", savedIncident.getId());
 
         return IncidentMapperDto.toResponse(savedIncident);
     }
 
     @Override
-    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity) {
-        logger.info("Fetching incidents. status: {}, severity: {}", status, severity);
+    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query) {
+        logger.info("Fetching incidents. status: {}, severity: {}, query: {}", status, severity, query);
 
-        return findIncidents(status, severity)
+        return incidentRepository.findAll(buildIncidentSpecification(status, severity, query))
                 .stream()
                 .map(IncidentMapperDto::toResponse)
                 .toList();
@@ -64,7 +77,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request) {
+    public IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail) {
         logger.info("Updating incident by id: {}", incidentId);
 
         Incident incident = findIncidentOrThrow(incidentId);
@@ -87,19 +100,35 @@ public class IncidentServiceImpl implements IncidentService {
 
         Incident savedIncident = incidentRepository.save(incident);
 
+        auditLogService.record(
+                "INCIDENT_UPDATED",
+                "INCIDENT",
+                savedIncident.getId(),
+                actorEmail,
+                "Incident updated: " + savedIncident.getTitle()
+        );
+
         logger.info("Incident updated successfully. incidentId: {}", savedIncident.getId());
 
         return IncidentMapperDto.toResponse(savedIncident);
     }
 
     @Override
-    public IncidentResponseDto deleteIncidentById(Long incidentId) {
+    public IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail) {
         logger.info("Deleting incident by id: {}", incidentId);
 
         Incident incident = findIncidentOrThrow(incidentId);
         IncidentResponseDto response = IncidentMapperDto.toResponse(incident);
 
         incidentRepository.delete(incident);
+
+        auditLogService.record(
+                "INCIDENT_DELETED",
+                "INCIDENT",
+                incidentId,
+                actorEmail,
+                "Incident deleted: " + incident.getTitle()
+        );
 
         logger.info("Incident deleted successfully. incidentId: {}", incidentId);
 
@@ -114,19 +143,36 @@ public class IncidentServiceImpl implements IncidentService {
                 });
     }
 
-    private List<Incident> findIncidents(IncidentStatus status, IncidentSeverity severity) {
-        if (status != null && severity != null) {
-            return incidentRepository.findByStatusAndSeverity(status, severity);
-        }
+    private Specification<Incident> buildIncidentSpecification(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String query) {
 
-        if (status != null) {
-            return incidentRepository.findByStatus(status);
-        }
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
 
-        if (severity != null) {
-            return incidentRepository.findBySeverity(severity);
-        }
+            if (status != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+            }
 
-        return incidentRepository.findAll();
+            if (severity != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("severity"), severity));
+            }
+
+            if (query != null && !query.isBlank()) {
+                String searchTerm = "%" + query.trim().toLowerCase() + "%";
+                var titlePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), searchTerm);
+                var descriptionPredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("description")),
+                        searchTerm
+                );
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.or(titlePredicate, descriptionPredicate)
+                );
+            }
+
+            return predicate;
+        };
     }
 }

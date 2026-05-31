@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
@@ -39,6 +40,9 @@ public class UserServiceImpl implements UserService{
 	
 	@Autowired
 	private JwtService jwtService;
+
+	@Autowired
+	private AuditLogService auditLogService;
 	
 	@Override
 	public UserResponseDto register(RegisterRequestDto request) {
@@ -61,6 +65,14 @@ public class UserServiceImpl implements UserService{
         user.setRoles(roles);
 
         AppUser savedUser = userRepository.save(user);
+
+        auditLogService.record(
+        		"USER_REGISTERED",
+        		"USER",
+        		savedUser.getId(),
+        		savedUser.getEmail(),
+        		"User registered: " + savedUser.getEmail()
+        );
         
         logger.info("User registered successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
 
@@ -91,6 +103,14 @@ public class UserServiceImpl implements UserService{
 	    }
 
 	    logger.info("Login successful. userId: {}, email: {}", user.getId(), user.getEmail());
+
+	    auditLogService.record(
+	    		"USER_LOGIN",
+	    		"USER",
+	    		user.getId(),
+	    		user.getEmail(),
+	    		"User login: " + user.getEmail()
+	    );
 
 	    String token = jwtService.generateToken(
 	            user.getId(),
@@ -150,7 +170,7 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto) {
+	public UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail) {
 		logger.info("Updating user by id: {}", userId);
 
 		AppUser user = userRepository.findById(userId)
@@ -182,13 +202,21 @@ public class UserServiceImpl implements UserService{
 
 		AppUser savedUser = userRepository.save(user);
 
+		auditLogService.record(
+				"USER_UPDATED",
+				"USER",
+				savedUser.getId(),
+				actorEmail,
+				"User updated: " + savedUser.getEmail()
+		);
+
 		logger.info("User updated successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
 
 		return UserMapperDto.toResponse(savedUser);
 	}
 
 	@Override
-	public UserResponseDto deleteUserById(Long userId) {
+	public UserResponseDto deleteUserById(Long userId, String actorEmail) {
 		logger.info("Deleting user by id: {}", userId);
 
 		AppUser user = userRepository.findById(userId)
@@ -199,6 +227,14 @@ public class UserServiceImpl implements UserService{
 
 		UserResponseDto response = UserMapperDto.toResponse(user);
 		userRepository.delete(user);
+
+		auditLogService.record(
+				"USER_DELETED",
+				"USER",
+				userId,
+				actorEmail,
+				"User deleted: " + user.getEmail()
+		);
 
 		logger.info("User deleted successfully. userId: {}, email: {}", user.getId(), user.getEmail());
 

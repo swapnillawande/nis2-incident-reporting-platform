@@ -1,5 +1,6 @@
 package com.nisync.incident.note.service.impl;
 
+import com.nisync.audit.service.AuditLogService;
 import com.nisync.common.exception.ResourceNotFoundException;
 import com.nisync.incident.entity.Incident;
 import com.nisync.incident.note.dto.CreateIncidentNoteRequestDto;
@@ -24,6 +25,9 @@ public class IncidentNoteServiceImpl implements IncidentNoteService {
     @Autowired
     private IncidentNoteRepository incidentNoteRepository;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
     @Override
     public IncidentNoteResponseDto addNote(
             Long incidentId,
@@ -37,7 +41,17 @@ public class IncidentNoteServiceImpl implements IncidentNoteService {
         incidentNote.setNote(request.getNote());
         incidentNote.setCreatedByEmail(createdByEmail);
 
-        return IncidentNoteMapperDto.toResponse(incidentNoteRepository.save(incidentNote));
+        IncidentNote savedNote = incidentNoteRepository.save(incidentNote);
+
+        auditLogService.record(
+                "INCIDENT_NOTE_ADDED",
+                "INCIDENT",
+                incidentId,
+                createdByEmail,
+                "Note added to incident: " + incident.getTitle()
+        );
+
+        return IncidentNoteMapperDto.toResponse(savedNote);
     }
 
     @Override
