@@ -13,6 +13,7 @@ import com.nisync.incident.service.impl.IncidentServiceImpl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,7 +81,8 @@ class IncidentServiceImplTest {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");
 
-        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort()))
+                .thenReturn(List.of(firstIncident, secondIncident));
 
         List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null);
 
@@ -94,7 +97,7 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.IN_PROGRESS);
         incident.setSeverity(IncidentSeverity.HIGH);
 
-        when(incidentRepository.findAll(anyIncidentSpecification())).thenReturn(List.of(incident));
+        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(incident));
 
         List<IncidentResponseDto> response = incidentService.getIncidents(
                 IncidentStatus.IN_PROGRESS,
@@ -194,5 +197,10 @@ class IncidentServiceImplTest {
 
     private Specification<Incident> anyIncidentSpecification() {
         return any();
+    }
+
+    private Sort anyCreatedAtDescSort() {
+        return argThat(sort -> sort.getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
     }
 }

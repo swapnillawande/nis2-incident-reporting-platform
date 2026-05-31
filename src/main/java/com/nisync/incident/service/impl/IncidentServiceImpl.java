@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -63,7 +64,10 @@ public class IncidentServiceImpl implements IncidentService {
     public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query) {
         logger.info("Fetching incidents. status: {}, severity: {}, query: {}", status, severity, query);
 
-        return incidentRepository.findAll(buildIncidentSpecification(status, severity, query))
+        return incidentRepository.findAll(
+                        buildIncidentSpecification(status, severity, query),
+                        Sort.by(Sort.Direction.DESC, "createdAt")
+                )
                 .stream()
                 .map(IncidentMapperDto::toResponse)
                 .toList();
