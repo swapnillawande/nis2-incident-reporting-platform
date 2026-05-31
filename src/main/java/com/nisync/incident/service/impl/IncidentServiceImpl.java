@@ -6,6 +6,7 @@ import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
 import com.nisync.incident.entity.Incident;
+import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
 import com.nisync.incident.service.IncidentService;
@@ -44,10 +45,10 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponseDto> getAllIncidents() {
-        logger.info("Fetching all incidents");
+    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity) {
+        logger.info("Fetching incidents. status: {}, severity: {}", status, severity);
 
-        return incidentRepository.findAll()
+        return findIncidents(status, severity)
                 .stream()
                 .map(IncidentMapperDto::toResponse)
                 .toList();
@@ -111,5 +112,21 @@ public class IncidentServiceImpl implements IncidentService {
                     logger.warn("Incident not found with id: {}", incidentId);
                     return new ResourceNotFoundException("Incident not found with id: " + incidentId);
                 });
+    }
+
+    private List<Incident> findIncidents(IncidentStatus status, IncidentSeverity severity) {
+        if (status != null && severity != null) {
+            return incidentRepository.findByStatusAndSeverity(status, severity);
+        }
+
+        if (status != null) {
+            return incidentRepository.findByStatus(status);
+        }
+
+        if (severity != null) {
+            return incidentRepository.findBySeverity(severity);
+        }
+
+        return incidentRepository.findAll();
     }
 }
