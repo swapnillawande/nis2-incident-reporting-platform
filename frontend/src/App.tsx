@@ -2,6 +2,7 @@ import { BrowserRouter, Link, Route, Routes, useNavigate } from "react-router-do
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
+import IncidentsPage from "./pages/IncidentsPage";
 import UsersPage from "./pages/UsersPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -19,6 +20,7 @@ function Navbar() {
   return (
     <nav className="app-navbar">
       <Link to="/">Dashboard</Link>
+      {user && <Link to="/incidents">Incidents</Link>}
       {isAdmin && <Link to="/users">Users</Link>}
 
       {!user && <Link to="/login">Login</Link>}
@@ -58,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incidents"
+          element={
+            <ProtectedRoute>
+              <IncidentsPage />
             </ProtectedRoute>
           }
         />
