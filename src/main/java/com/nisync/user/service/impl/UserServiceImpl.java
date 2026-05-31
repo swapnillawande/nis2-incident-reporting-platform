@@ -128,32 +128,87 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	public UserResponseDto getUserById(Long userId) {
-		// TODO Auto-generated method stub
-		return null;
+		logger.info("Fetching user by id: {}", userId);
+
+		AppUser user = userRepository.findById(userId)
+				.orElseThrow(() -> {
+					logger.warn("User not found with id: {}", userId);
+					return new ResourceNotFoundException("User not found with id: " + userId);
+				});
+
+		return UserMapperDto.toResponse(user);
 	}
 
 	@Override
 	public List<UserResponseDto> getAllUsers() {
-		// TODO Auto-generated method stub
-		return null;
+		logger.info("Fetching all users");
+
+		return userRepository.findAll()
+				.stream()
+				.map(UserMapperDto::toResponse)
+				.toList();
 	}
 
 	@Override
 	public UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto) {
-		// TODO Auto-generated method stub
-		return null;
+		logger.info("Updating user by id: {}", userId);
+
+		AppUser user = userRepository.findById(userId)
+				.orElseThrow(() -> {
+					logger.warn("User not found for update. id: {}", userId);
+					return new ResourceNotFoundException("User not found with id: " + userId);
+				});
+
+		if (userResponseDto.getFullName() != null) {
+			user.setFullName(userResponseDto.getFullName());
+		}
+
+		if (userResponseDto.getEmail() != null && !userResponseDto.getEmail().equals(user.getEmail())) {
+			if (userRepository.existsByEmail(userResponseDto.getEmail())) {
+				logger.warn("User update failed. Email already exists: {}", userResponseDto.getEmail());
+				throw new DuplicateResourceException("Email already exists: " + userResponseDto.getEmail());
+			}
+
+			user.setEmail(userResponseDto.getEmail());
+		}
+
+		if (userResponseDto.getStatus() != null) {
+			user.setStatus(userResponseDto.getStatus());
+		}
+
+		if (userResponseDto.getRoles() != null && !userResponseDto.getRoles().isEmpty()) {
+			user.setRoles(userResponseDto.getRoles());
+		}
+
+		AppUser savedUser = userRepository.save(user);
+
+		logger.info("User updated successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
+
+		return UserMapperDto.toResponse(savedUser);
 	}
 
 	@Override
 	public UserResponseDto deleteUserById(Long userId) {
-		// TODO Auto-generated method stub
-		return null;
+		logger.info("Deleting user by id: {}", userId);
+
+		AppUser user = userRepository.findById(userId)
+				.orElseThrow(() -> {
+					logger.warn("User not found for delete. id: {}", userId);
+					return new ResourceNotFoundException("User not found with id: " + userId);
+				});
+
+		UserResponseDto response = UserMapperDto.toResponse(user);
+		userRepository.delete(user);
+
+		logger.info("User deleted successfully. userId: {}, email: {}", user.getId(), user.getEmail());
+
+		return response;
 	}
 
 	@Override
 	public void deleteAllUsers() {
-		// TODO Auto-generated method stub
-		
+		logger.warn("Deleting all users");
+		userRepository.deleteAll();
 	}
 
 }

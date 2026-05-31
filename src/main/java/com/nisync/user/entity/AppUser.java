@@ -4,7 +4,6 @@ import com.nisync.user.enums.RoleName;
 import com.nisync.user.enums.UserStatus;
 
 import jakarta.persistence.*;
-import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -42,14 +41,13 @@ public class AppUser {
     private UserStatus status;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id")
-    )
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role_name", nullable = false)
-    @Builder.Default
-    private Set<RoleName> roles = new HashSet<>();
+	@CollectionTable(
+	            name = "user_roles",
+	            joinColumns = @JoinColumn(name = "user_id")
+	    )
+	@Enumerated(EnumType.STRING)
+	@Column(name = "role_name", nullable = false)
+	private Set<RoleName> roles = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -154,9 +152,8 @@ public class AppUser {
 
 	@Override
 	public String toString() {
-		return "AppUser [id=" + id + ", fullName=" + fullName + ", email=" + email + ", passwordHash=" + passwordHash
-				+ ", status=" + status + ", roles=" + roles + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt
-				+ "]";
+		return "AppUser [id=" + id + ", fullName=" + fullName + ", email=" + email + ", status=" + status
+				+ ", roles=" + roles + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + "]";
 	}
     
     

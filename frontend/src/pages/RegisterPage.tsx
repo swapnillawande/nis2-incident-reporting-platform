@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getApiErrorMessage } from "../api/errorUtils";
 import { registerUser } from "../api/userApi";
 import type { RoleName } from "../types/user";
 
@@ -31,22 +32,10 @@ function RegisterPage() {
       setEmail("");
       setPassword("");
       setRole("ADMIN");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Registration error:", error);
 
-      const backendData = error.response?.data;
-
-      let errorMessage = "Registration failed";
-
-      if (backendData?.validationErrors) {
-        errorMessage = Object.values(backendData.validationErrors).join("\n");
-      } else if (backendData?.message) {
-        errorMessage = backendData.message;
-      } else if (backendData?.error) {
-        errorMessage = backendData.error;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      const errorMessage = getApiErrorMessage(error, "Registration failed");
 
       setMessage(errorMessage);
       setMessageType("error");

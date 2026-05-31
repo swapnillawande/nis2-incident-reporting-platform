@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getApiErrorMessage } from "../api/errorUtils";
 import { getCurrentUser } from "../api/userApi";
 import type { UserResponse } from "../types/user";
 
@@ -11,13 +12,13 @@ function DashboardPage() {
       try {
         const response = await getCurrentUser();
         setUser(response);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Failed to fetch current user:", error);
 
-        const errorMessage =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Session expired or unauthorized. Please login again.";
+        const errorMessage = getApiErrorMessage(
+          error,
+          "Session expired or unauthorized. Please login again."
+        );
 
         setError(errorMessage);
         localStorage.removeItem("user");

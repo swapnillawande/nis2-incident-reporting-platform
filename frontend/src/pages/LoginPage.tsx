@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApiErrorMessage } from "../api/errorUtils";
 import { loginUser } from "../api/userApi";
 
 function LoginPage() {
@@ -30,22 +31,10 @@ function LoginPage() {
       setTimeout(() => {
         navigate("/");
       }, 700);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
 
-      const backendData = error.response?.data;
-
-      let errorMessage = "Login failed";
-
-      if (backendData?.validationErrors) {
-        errorMessage = Object.values(backendData.validationErrors).join("\n");
-      } else if (backendData?.message) {
-        errorMessage = backendData.message;
-      } else if (backendData?.error) {
-        errorMessage = backendData.error;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      const errorMessage = getApiErrorMessage(error, "Login failed");
 
       setMessage(errorMessage);
       setMessageType("error");
