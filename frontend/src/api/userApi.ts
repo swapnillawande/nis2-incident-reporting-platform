@@ -5,6 +5,8 @@ import type {
   RegisterRequest,
   UpdateUserRequest,
   UserResponse,
+  RoleName,
+  UserStatus,
 } from "../types/user";
 
 const API_BASE_URL =
@@ -46,9 +48,22 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
   return response.data;
 };
 
-export const getAllUsers = async (): Promise<UserResponse[]> => {
+export interface UserFilters {
+  status?: UserStatus | "";
+  role?: RoleName | "";
+  query?: string;
+}
+
+export const getAllUsers = async (
+  filters: UserFilters = {}
+): Promise<UserResponse[]> => {
   const response = await axios.get(`${API_BASE_URL}/users`, {
     headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      role: filters.role || undefined,
+      q: filters.query?.trim() || undefined,
+    },
   });
 
   return response.data;

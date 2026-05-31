@@ -25,6 +25,9 @@ function UsersPage() {
   const [isLoading, setIsLoading] = useState(isAdmin);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [queryFilter, setQueryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<UserStatus | "">("");
+  const [roleFilter, setRoleFilter] = useState<RoleName | "">("");
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -37,7 +40,11 @@ function UsersPage() {
     setMessageType("");
 
     try {
-      const response = await getAllUsers();
+      const response = await getAllUsers({
+        status: statusFilter,
+        role: roleFilter,
+        query: queryFilter,
+      });
       setUsers(response);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load users"), "error");
@@ -51,7 +58,11 @@ function UsersPage() {
       return;
     }
 
-    getAllUsers()
+    getAllUsers({
+      status: statusFilter,
+      role: roleFilter,
+      query: queryFilter,
+    })
       .then((response) => {
         setUsers(response);
       })
@@ -61,7 +72,7 @@ function UsersPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin]);
+  }, [isAdmin, statusFilter, roleFilter, queryFilter]);
 
   const openEdit = (user: UserResponse) => {
     setSelectedUser(user);
@@ -160,9 +171,64 @@ function UsersPage() {
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
 
+      <section className="filter-bar">
+        <div className="filter-group">
+          <label>Search</label>
+          <input
+            value={queryFilter}
+            onChange={(event) => setQueryFilter(event.target.value)}
+            placeholder="Search name or email"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>Status</label>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as UserStatus | "")}
+          >
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Role</label>
+          <select
+            value={roleFilter}
+            onChange={(event) => setRoleFilter(event.target.value as RoleName | "")}
+          >
+            <option value="">All roles</option>
+            {ROLE_OPTIONS.map((role) => (
+              <option key={role} value={role}>
+                {role.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setQueryFilter("");
+            setStatusFilter("");
+            setRoleFilter("");
+          }}
+          disabled={!queryFilter && !statusFilter && !roleFilter}
+        >
+          Clear Filters
+        </button>
+      </section>
+
       <section className="table-panel">
         {isLoading ? (
           <p className="text-muted">Loading users...</p>
+        ) : users.length === 0 ? (
+          <p className="text-muted">No users match the selected filters.</p>
         ) : (
           <div className="table-wrap">
             <table className="data-table">
