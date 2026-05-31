@@ -53,6 +53,21 @@ public class UserController {
         return response;
         
     }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponseDto createUser(
+            @Valid @RequestBody RegisterRequestDto request,
+            Authentication authentication) {
+
+        logger.info("POST /users called by {} for email: {}", authentication.getName(), request.getEmail());
+
+        UserResponseDto response = userService.createUser(request, authentication.getName());
+
+        logger.info("User created successfully by admin. userId: {}, email: {}", response.getId(), response.getEmail());
+
+        return response;
+    }
     
     @PostMapping("/login")
     public AuthResponseDto login(@Valid @RequestBody LoginRequestDto request) {

@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,6 +98,35 @@ public class UserServiceImplTest {
         assertTrue(response.getRoles().contains(RoleName.ADMIN));
         
         
+    }
+
+    @Test
+    void shouldCreateUserByAdminSuccessfully() {
+        RegisterRequestDto request = new RegisterRequestDto();
+        request.setFullName("Analyst User");
+        request.setEmail("analyst@test.com");
+        request.setPassword("test@1234");
+        request.setRole(RoleName.SECURITY_ANALYST);
+
+        AppUser savedUser = buildUser(10L, "Analyst User", "analyst@test.com");
+        savedUser.setRoles(Set.of(RoleName.SECURITY_ANALYST));
+
+        when(userRepository.existsByEmail("analyst@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("test@1234")).thenReturn("encoded-password");
+        when(userRepository.save(any(AppUser.class))).thenReturn(savedUser);
+
+        UserResponseDto response = userService.createUser(request, "admin@nis2.com");
+
+        assertEquals(10L, response.getId());
+        assertEquals("analyst@test.com", response.getEmail());
+        assertTrue(response.getRoles().contains(RoleName.SECURITY_ANALYST));
+        verify(auditLogService).record(
+                eq("USER_CREATED"),
+                eq("USER"),
+                eq(10L),
+                eq("admin@nis2.com"),
+                eq("User created: analyst@test.com")
+        );
     }
 
     @Test
@@ -223,4 +253,3 @@ public class UserServiceImplTest {
                 && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
     }
 }
-

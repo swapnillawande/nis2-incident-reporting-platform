@@ -12,6 +12,8 @@ import com.nisync.user.enums.UserStatus;
 public interface UserService {
 
     UserResponseDto register(RegisterRequestDto request);
+
+    UserResponseDto createUser(RegisterRequestDto request, String actorEmail);
     
     AuthResponseDto login(LoginRequestDto request);
 

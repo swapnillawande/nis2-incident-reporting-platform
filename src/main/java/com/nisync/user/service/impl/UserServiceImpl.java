@@ -48,39 +48,26 @@ public class UserServiceImpl implements UserService{
 	
 	@Override
 	public UserResponseDto register(RegisterRequestDto request) {
-		
         logger.info("Register request received for email: {}", request.getEmail());
-		
-        if (userRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Registration failed... Email already exists: {}", request.getEmail());
-            throw new DuplicateResourceException("Email already exists: " + request.getEmail());
-        }
 
-        AppUser user = new AppUser();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(UserStatus.ACTIVE);
+        return createUserRecord(
+				request,
+				"USER_REGISTERED",
+				request.getEmail(),
+				"User registered: "
+		);
+	}
 
-        Set<RoleName> roles = new HashSet<>();
-        roles.add(request.getRole());
-        user.setRoles(roles);
+	@Override
+	public UserResponseDto createUser(RegisterRequestDto request, String actorEmail) {
+		logger.info("Admin create user request received for email: {}, actor: {}", request.getEmail(), actorEmail);
 
-        AppUser savedUser = userRepository.save(user);
-
-        auditLogService.record(
-        		"USER_REGISTERED",
-        		"USER",
-        		savedUser.getId(),
-        		savedUser.getEmail(),
-        		"User registered: " + savedUser.getEmail()
-        );
-        
-        logger.info("User registered successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
-
-        return UserMapperDto.toResponse(savedUser);
-        
-        
+		return createUserRecord(
+				request,
+				"USER_CREATED",
+				actorEmail,
+				"User created: "
+		);
 	}
 	
 	@Override
@@ -273,6 +260,42 @@ public class UserServiceImpl implements UserService{
 
 			return predicate;
 		};
+	}
+
+	private UserResponseDto createUserRecord(
+			RegisterRequestDto request,
+			String auditAction,
+			String actorEmail,
+			String auditDetailsPrefix) {
+
+		if (userRepository.existsByEmail(request.getEmail())) {
+			logger.warn("User create failed. Email already exists: {}", request.getEmail());
+			throw new DuplicateResourceException("Email already exists: " + request.getEmail());
+		}
+
+		AppUser user = new AppUser();
+		user.setFullName(request.getFullName());
+		user.setEmail(request.getEmail());
+		user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+		user.setStatus(UserStatus.ACTIVE);
+
+		Set<RoleName> roles = new HashSet<>();
+		roles.add(request.getRole());
+		user.setRoles(roles);
+
+		AppUser savedUser = userRepository.save(user);
+
+		auditLogService.record(
+				auditAction,
+				"USER",
+				savedUser.getId(),
+				actorEmail,
+				auditDetailsPrefix + savedUser.getEmail()
+		);
+
+		logger.info("User saved successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
+
+		return UserMapperDto.toResponse(savedUser);
 	}
 
 }
