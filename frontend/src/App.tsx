@@ -2,12 +2,14 @@ import { BrowserRouter, Link, Route, Routes, useNavigate } from "react-router-do
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
+import UsersPage from "./pages/UsersPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function Navbar() {
   const navigate = useNavigate();
   const userData = localStorage.getItem("user");
   const user = userData ? JSON.parse(userData) : null;
+  const isAdmin = user?.roles?.includes("ADMIN");
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -17,6 +19,7 @@ function Navbar() {
   return (
     <nav className="app-navbar">
       <Link to="/">Dashboard</Link>
+      {isAdmin && <Link to="/users">Users</Link>}
 
       {!user && <Link to="/login">Login</Link>}
       {!user && <Link to="/register">Register</Link>}
@@ -47,6 +50,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <UsersPage />
             </ProtectedRoute>
           }
         />

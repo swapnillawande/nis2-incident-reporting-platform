@@ -3,6 +3,7 @@ import type {
   AuthResponse,
   LoginRequest,
   RegisterRequest,
+  UpdateUserRequest,
   UserResponse,
 } from "../types/user";
 
@@ -39,6 +40,33 @@ export const loginUser = async (
 
 export const getCurrentUser = async (): Promise<UserResponse> => {
   const response = await axios.get(`${API_BASE_URL}/users/me`, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const getAllUsers = async (): Promise<UserResponse[]> => {
+  const response = await axios.get(`${API_BASE_URL}/users`, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const updateUser = async (
+  userId: number,
+  data: UpdateUserRequest
+): Promise<UserResponse> => {
+  const response = await axios.put(`${API_BASE_URL}/users/${userId}`, data, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const deleteUser = async (userId: number): Promise<UserResponse> => {
+  const response = await axios.delete(`${API_BASE_URL}/users/${userId}`, {
     headers: getAuthHeader(),
   });
 

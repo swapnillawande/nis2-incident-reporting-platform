@@ -20,10 +20,19 @@ export interface UserResponse {
   id: number;
   fullName: string;
   email: string;
-  status: string;
+  status: UserStatus;
   roles: RoleName[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
+export interface UpdateUserRequest {
+  fullName: string;
+  email: string;
+  status: UserStatus;
+  roles: RoleName[];
 }
 
 export interface AuthResponse {
