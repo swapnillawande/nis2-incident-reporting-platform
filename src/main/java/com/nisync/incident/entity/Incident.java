@@ -44,6 +44,9 @@ public class Incident {
     @Column(name = "assigned_to_email", length = 150)
     private String assignedToEmail;
 
+    @Column(name = "due_at")
+    private LocalDateTime dueAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -119,6 +122,14 @@ public class Incident {
 
     public void setAssignedToEmail(String assignedToEmail) {
         this.assignedToEmail = assignedToEmail;
+    }
+
+    public LocalDateTime getDueAt() {
+        return dueAt;
+    }
+
+    public void setDueAt(LocalDateTime dueAt) {
+        this.dueAt = dueAt;
     }
 
     public LocalDateTime getCreatedAt() {

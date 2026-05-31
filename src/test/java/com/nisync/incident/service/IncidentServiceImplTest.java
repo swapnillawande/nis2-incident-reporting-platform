@@ -51,6 +51,7 @@ class IncidentServiceImplTest {
         request.setDescription("Multiple failed login attempts detected from one IP address.");
         request.setSeverity(IncidentSeverity.HIGH);
         request.setAssignedToEmail(" analyst@nis2.com ");
+        request.setDueAt(LocalDateTime.of(2026, 6, 1, 12, 0));
 
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> {
             Incident incident = invocation.getArgument(0);
@@ -69,6 +70,7 @@ class IncidentServiceImplTest {
         assertEquals(IncidentStatus.OPEN, response.getStatus());
         assertEquals("admin@nis2.com", response.getReportedByEmail());
         assertEquals("analyst@nis2.com", response.getAssignedToEmail());
+        assertEquals(LocalDateTime.of(2026, 6, 1, 12, 0), response.getDueAt());
     }
 
     @Test
@@ -132,6 +134,7 @@ class IncidentServiceImplTest {
         request.setSeverity(IncidentSeverity.CRITICAL);
         request.setStatus(IncidentStatus.IN_PROGRESS);
         request.setAssignedToEmail("lead@nis2.com");
+        request.setDueAt(LocalDateTime.of(2026, 6, 2, 18, 30));
 
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -142,6 +145,7 @@ class IncidentServiceImplTest {
         assertEquals(IncidentSeverity.CRITICAL, response.getSeverity());
         assertEquals(IncidentStatus.IN_PROGRESS, response.getStatus());
         assertEquals("lead@nis2.com", response.getAssignedToEmail());
+        assertEquals(LocalDateTime.of(2026, 6, 2, 18, 30), response.getDueAt());
     }
 
     @Test
@@ -165,6 +169,7 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.OPEN);
         incident.setReportedByEmail("admin@nis2.com");
         incident.setAssignedToEmail("analyst@nis2.com");
+        incident.setDueAt(LocalDateTime.of(2026, 6, 1, 9, 0));
         incident.setCreatedAt(LocalDateTime.now());
         incident.setUpdatedAt(LocalDateTime.now());
 

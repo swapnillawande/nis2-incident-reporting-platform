@@ -5,6 +5,8 @@ import com.nisync.incident.enums.IncidentStatus;
 
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDateTime;
+
 public class UpdateIncidentRequestDto {
 
     @Size(min = 3, max = 160, message = "Title must be between 3 and 160 characters")
@@ -19,6 +21,8 @@ public class UpdateIncidentRequestDto {
 
     @Size(max = 150, message = "Assigned user email must be at most 150 characters")
     private String assignedToEmail;
+
+    private LocalDateTime dueAt;
 
     public String getTitle() {
         return title;
@@ -58,5 +62,13 @@ public class UpdateIncidentRequestDto {
 
     public void setAssignedToEmail(String assignedToEmail) {
         this.assignedToEmail = assignedToEmail;
+    }
+
+    public LocalDateTime getDueAt() {
+        return dueAt;
+    }
+
+    public void setDueAt(LocalDateTime dueAt) {
+        this.dueAt = dueAt;
     }
 }

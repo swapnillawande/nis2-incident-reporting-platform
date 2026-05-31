@@ -42,6 +42,7 @@ public class IncidentServiceImpl implements IncidentService {
         incident.setStatus(IncidentStatus.OPEN);
         incident.setReportedByEmail(reportedByEmail);
         incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
+        incident.setDueAt(request.getDueAt());
 
         Incident savedIncident = incidentRepository.save(incident);
 
@@ -101,6 +102,10 @@ public class IncidentServiceImpl implements IncidentService {
 
         if (request.getAssignedToEmail() != null) {
             incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
+        }
+
+        if (request.getDueAt() != null) {
+            incident.setDueAt(request.getDueAt());
         }
 
         Incident savedIncident = incidentRepository.save(incident);
