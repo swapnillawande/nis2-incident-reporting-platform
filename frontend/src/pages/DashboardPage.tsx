@@ -38,6 +38,45 @@ function DashboardPage() {
 
   const activeIncidents =
     (summary?.openIncidents ?? 0) + (summary?.inProgressIncidents ?? 0);
+  const closedOrResolved =
+    (summary?.resolvedIncidents ?? 0) + (summary?.closedIncidents ?? 0);
+  const dashboardCards = [
+    {
+      label: "Total Users",
+      value: summary?.totalUsers,
+      tone: "default",
+    },
+    {
+      label: "Total Incidents",
+      value: summary?.totalIncidents,
+      tone: "default",
+    },
+    {
+      label: "Active Work",
+      value: summary ? activeIncidents : undefined,
+      tone: "info",
+    },
+    {
+      label: "Overdue SLA",
+      value: summary?.overdueIncidents,
+      tone: "danger",
+    },
+    {
+      label: "Due Within 24h",
+      value: summary?.dueSoonIncidents,
+      tone: "warning",
+    },
+    {
+      label: "No SLA Set",
+      value: summary?.unscheduledActiveIncidents,
+      tone: "neutral",
+    },
+    {
+      label: "Closed / Resolved",
+      value: summary ? closedOrResolved : undefined,
+      tone: "success",
+    },
+  ];
 
   return (
     <div className="page-container">
@@ -66,25 +105,12 @@ function DashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        <div className="dashboard-card">
-          <span>Total Users</span>
-          <strong>{summary ? summary.totalUsers : "--"}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <span>Total Incidents</span>
-          <strong>{summary ? summary.totalIncidents : "--"}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <span>Open Incidents</span>
-          <strong>{summary ? summary.openIncidents : "--"}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <span>Active Work</span>
-          <strong>{summary ? activeIncidents : "--"}</strong>
-        </div>
+        {dashboardCards.map((card) => (
+          <div className={`dashboard-card dashboard-card-${card.tone}`} key={card.label}>
+            <span>{card.label}</span>
+            <strong>{card.value ?? "--"}</strong>
+          </div>
+        ))}
       </div>
     </div>
   );

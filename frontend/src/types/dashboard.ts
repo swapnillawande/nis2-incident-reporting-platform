@@ -5,4 +5,7 @@ export interface DashboardSummary {
   inProgressIncidents: number;
   resolvedIncidents: number;
   closedIncidents: number;
+  overdueIncidents: number;
+  dueSoonIncidents: number;
+  unscheduledActiveIncidents: number;
 }

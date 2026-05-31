@@ -358,6 +358,51 @@ button:disabled {
 .dashboard-card span { display: block; color: var(--text-muted); font-size: 14px; font-weight: 700; }
 .dashboard-card strong { display: block; margin-top: 10px; font-size: 32px; color: var(--text-main); }
 
+.dashboard-card-info {
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%);
+  border-color: #bfdbfe;
+}
+
+.dashboard-card-danger {
+  background: linear-gradient(145deg, #ffffff 0%, #fff1f2 100%);
+  border-color: #fecdd3;
+}
+
+.dashboard-card-warning {
+  background: linear-gradient(145deg, #ffffff 0%, #fffbeb 100%);
+  border-color: #fde68a;
+}
+
+.dashboard-card-neutral {
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  border-color: #cbd5e1;
+}
+
+.dashboard-card-success {
+  background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%);
+  border-color: #bbf7d0;
+}
+
+:root[data-theme="dark"] .dashboard-card-info,
+:root[data-theme="dark"] .dashboard-card-danger,
+:root[data-theme="dark"] .dashboard-card-warning,
+:root[data-theme="dark"] .dashboard-card-neutral,
+:root[data-theme="dark"] .dashboard-card-success {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.dashboard-card-info strong { color: #2563eb; }
+.dashboard-card-danger strong { color: #be123c; }
+.dashboard-card-warning strong { color: #b45309; }
+.dashboard-card-neutral strong { color: #475569; }
+.dashboard-card-success strong { color: #047857; }
+
+:root[data-theme="dark"] .dashboard-card-info strong { color: #38bdf8; }
+:root[data-theme="dark"] .dashboard-card-danger strong { color: #fb7185; }
+:root[data-theme="dark"] .dashboard-card-warning strong { color: #fbbf24; }
+:root[data-theme="dark"] .dashboard-card-neutral strong { color: #cbd5e1; }
+:root[data-theme="dark"] .dashboard-card-success strong { color: #34d399; }
+
 /* =========================
    USER MANAGEMENT
 ========================= */
