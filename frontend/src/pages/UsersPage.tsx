@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApiErrorMessage } from "../api/errorUtils";
-import { deleteUser, getAllUsers, updateUser } from "../api/userApi";
-import type { RoleName, UpdateUserRequest, UserResponse, UserStatus } from "../types/user";
+import { createUser, deleteUser, getAllUsers, updateUser } from "../api/userApi";
+import type {
+  CreateUserRequest,
+  RoleName,
+  UpdateUserRequest,
+  UserResponse,
+  UserStatus,
+} from "../types/user";
 
 const ROLE_OPTIONS: RoleName[] = [
   "ADMIN",
@@ -11,6 +17,13 @@ const ROLE_OPTIONS: RoleName[] = [
 ];
 
 const STATUS_OPTIONS: UserStatus[] = ["ACTIVE", "INACTIVE", "SUSPENDED"];
+
+const emptyCreateForm: CreateUserRequest = {
+  fullName: "",
+  email: "",
+  password: "",
+  role: "SECURITY_ANALYST",
+};
 
 function UsersPage() {
   const currentUser = useMemo(() => {
@@ -28,6 +41,8 @@ function UsersPage() {
   const [queryFilter, setQueryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "">("");
   const [roleFilter, setRoleFilter] = useState<RoleName | "">("");
+  const [createForm, setCreateForm] = useState<CreateUserRequest>(emptyCreateForm);
+  const [isCreating, setIsCreating] = useState(false);
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -139,6 +154,22 @@ function UsersPage() {
     }
   };
 
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsCreating(true);
+
+    try {
+      await createUser(createForm);
+      setCreateForm(emptyCreateForm);
+      await loadUsers();
+      showMessage("User created successfully", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to create user"), "error");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="page-container">
@@ -222,6 +253,81 @@ function UsersPage() {
         >
           Clear Filters
         </button>
+      </section>
+
+      <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50 dark:!from-slate-900 dark:!via-slate-900 dark:!to-slate-800 dark:!border-slate-700">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-emerald-700">
+              New access
+            </span>
+            <h3 className="mt-3 !mb-0">Create User</h3>
+          </div>
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+            Admin only
+          </span>
+        </div>
+
+        <form className="incident-form" onSubmit={handleCreate}>
+          <div className="form-group">
+            <label>Full Name</label>
+            <input
+              value={createForm.fullName}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, fullName: event.target.value })
+              }
+              placeholder="Security Analyst"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={createForm.email}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, email: event.target.value })
+              }
+              placeholder="analyst@nis2.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              value={createForm.password}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, password: event.target.value })
+              }
+              placeholder="Minimum 8 characters"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Role</label>
+            <select
+              value={createForm.role}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, role: event.target.value as RoleName })
+              }
+            >
+              {ROLE_OPTIONS.map((role) => (
+                <option key={role} value={role}>
+                  {role.replace("_", " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className="btn-primary !w-auto !min-h-0 justify-self-start !rounded-xl !px-6 !py-3 !text-sm"
+            type="submit"
+            disabled={isCreating}
+          >
+            {isCreating ? "Creating..." : "Create User"}
+          </button>
+        </form>
       </section>
 
       <section className="table-panel">

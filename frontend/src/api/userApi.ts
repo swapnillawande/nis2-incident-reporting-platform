@@ -1,6 +1,7 @@
 import axios from "axios";
 import type {
   AuthResponse,
+  CreateUserRequest,
   LoginRequest,
   RegisterRequest,
   UpdateUserRequest,
@@ -30,6 +31,16 @@ export const registerUser = async (
   data: RegisterRequest
 ): Promise<UserResponse> => {
   const response = await axios.post(`${API_BASE_URL}/users/register`, data);
+  return response.data;
+};
+
+export const createUser = async (
+  data: CreateUserRequest
+): Promise<UserResponse> => {
+  const response = await axios.post(`${API_BASE_URL}/users`, data, {
+    headers: getAuthHeader(),
+  });
+
   return response.data;
 };
 
