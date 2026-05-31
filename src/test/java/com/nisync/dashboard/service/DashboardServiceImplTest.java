@@ -10,7 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +41,14 @@ class DashboardServiceImplTest {
         when(incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS)).thenReturn(2L);
         when(incidentRepository.countByStatus(IncidentStatus.RESOLVED)).thenReturn(4L);
         when(incidentRepository.countByStatus(IncidentStatus.CLOSED)).thenReturn(1L);
+        when(incidentRepository.countByDueAtBeforeAndStatusIn(
+                any(LocalDateTime.class),
+                any())).thenReturn(2L);
+        when(incidentRepository.countByDueAtBetweenAndStatusIn(
+                any(LocalDateTime.class),
+                any(LocalDateTime.class),
+                any())).thenReturn(1L);
+        when(incidentRepository.countByDueAtIsNullAndStatusIn(any())).thenReturn(3L);
 
         DashboardSummaryDto response = dashboardService.getSummary();
 
@@ -47,5 +58,8 @@ class DashboardServiceImplTest {
         assertEquals(2L, response.getInProgressIncidents());
         assertEquals(4L, response.getResolvedIncidents());
         assertEquals(1L, response.getClosedIncidents());
+        assertEquals(2L, response.getOverdueIncidents());
+        assertEquals(1L, response.getDueSoonIncidents());
+        assertEquals(3L, response.getUnscheduledActiveIncidents());
     }
 }

@@ -9,6 +9,9 @@ import com.nisync.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
@@ -24,6 +27,11 @@ public class DashboardServiceImpl implements DashboardService {
         long inProgressIncidents = incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
         long resolvedIncidents = incidentRepository.countByStatus(IncidentStatus.RESOLVED);
         long closedIncidents = incidentRepository.countByStatus(IncidentStatus.CLOSED);
+        LocalDateTime now = LocalDateTime.now();
+        List<IncidentStatus> activeStatuses = List.of(
+                IncidentStatus.OPEN,
+                IncidentStatus.IN_PROGRESS
+        );
 
         return new DashboardSummaryDto(
                 userRepository.count(),
@@ -31,7 +39,10 @@ public class DashboardServiceImpl implements DashboardService {
                 openIncidents,
                 inProgressIncidents,
                 resolvedIncidents,
-                closedIncidents
+                closedIncidents,
+                incidentRepository.countByDueAtBeforeAndStatusIn(now, activeStatuses),
+                incidentRepository.countByDueAtBetweenAndStatusIn(now, now.plusHours(24), activeStatuses),
+                incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses)
         );
     }
 }

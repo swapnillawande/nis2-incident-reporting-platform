@@ -8,6 +8,9 @@ public class DashboardSummaryDto {
     private long inProgressIncidents;
     private long resolvedIncidents;
     private long closedIncidents;
+    private long overdueIncidents;
+    private long dueSoonIncidents;
+    private long unscheduledActiveIncidents;
 
     public DashboardSummaryDto() {
     }
@@ -18,13 +21,19 @@ public class DashboardSummaryDto {
             long openIncidents,
             long inProgressIncidents,
             long resolvedIncidents,
-            long closedIncidents) {
+            long closedIncidents,
+            long overdueIncidents,
+            long dueSoonIncidents,
+            long unscheduledActiveIncidents) {
         this.totalUsers = totalUsers;
         this.totalIncidents = totalIncidents;
         this.openIncidents = openIncidents;
         this.inProgressIncidents = inProgressIncidents;
         this.resolvedIncidents = resolvedIncidents;
         this.closedIncidents = closedIncidents;
+        this.overdueIncidents = overdueIncidents;
+        this.dueSoonIncidents = dueSoonIncidents;
+        this.unscheduledActiveIncidents = unscheduledActiveIncidents;
     }
 
     public long getTotalUsers() {
@@ -73,5 +82,29 @@ public class DashboardSummaryDto {
 
     public void setClosedIncidents(long closedIncidents) {
         this.closedIncidents = closedIncidents;
+    }
+
+    public long getOverdueIncidents() {
+        return overdueIncidents;
+    }
+
+    public void setOverdueIncidents(long overdueIncidents) {
+        this.overdueIncidents = overdueIncidents;
+    }
+
+    public long getDueSoonIncidents() {
+        return dueSoonIncidents;
+    }
+
+    public void setDueSoonIncidents(long dueSoonIncidents) {
+        this.dueSoonIncidents = dueSoonIncidents;
+    }
+
+    public long getUnscheduledActiveIncidents() {
+        return unscheduledActiveIncidents;
+    }
+
+    public void setUnscheduledActiveIncidents(long unscheduledActiveIncidents) {
+        this.unscheduledActiveIncidents = unscheduledActiveIncidents;
     }
 }
