@@ -17,6 +17,9 @@ public class UpdateIncidentRequestDto {
 
     private IncidentStatus status;
 
+    @Size(max = 150, message = "Assigned user email must be at most 150 characters")
+    private String assignedToEmail;
+
     public String getTitle() {
         return title;
     }
@@ -47,5 +50,13 @@ public class UpdateIncidentRequestDto {
 
     public void setStatus(IncidentStatus status) {
         this.status = status;
+    }
+
+    public String getAssignedToEmail() {
+        return assignedToEmail;
+    }
+
+    public void setAssignedToEmail(String assignedToEmail) {
+        this.assignedToEmail = assignedToEmail;
     }
 }

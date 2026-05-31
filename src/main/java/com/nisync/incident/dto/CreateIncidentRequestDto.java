@@ -19,6 +19,9 @@ public class CreateIncidentRequestDto {
     @NotNull(message = "Severity is required")
     private IncidentSeverity severity;
 
+    @Size(max = 150, message = "Assigned user email must be at most 150 characters")
+    private String assignedToEmail;
+
     public String getTitle() {
         return title;
     }
@@ -41,5 +44,13 @@ public class CreateIncidentRequestDto {
 
     public void setSeverity(IncidentSeverity severity) {
         this.severity = severity;
+    }
+
+    public String getAssignedToEmail() {
+        return assignedToEmail;
+    }
+
+    public void setAssignedToEmail(String assignedToEmail) {
+        this.assignedToEmail = assignedToEmail;
     }
 }

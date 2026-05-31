@@ -13,6 +13,7 @@ public class IncidentResponseDto {
     private IncidentSeverity severity;
     private IncidentStatus status;
     private String reportedByEmail;
+    private String assignedToEmail;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -62,6 +63,14 @@ public class IncidentResponseDto {
 
     public void setReportedByEmail(String reportedByEmail) {
         this.reportedByEmail = reportedByEmail;
+    }
+
+    public String getAssignedToEmail() {
+        return assignedToEmail;
+    }
+
+    public void setAssignedToEmail(String assignedToEmail) {
+        this.assignedToEmail = assignedToEmail;
     }
 
     public LocalDateTime getCreatedAt() {

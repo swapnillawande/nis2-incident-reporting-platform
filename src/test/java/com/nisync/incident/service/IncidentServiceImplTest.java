@@ -50,6 +50,7 @@ class IncidentServiceImplTest {
         request.setTitle("Suspicious login attempts");
         request.setDescription("Multiple failed login attempts detected from one IP address.");
         request.setSeverity(IncidentSeverity.HIGH);
+        request.setAssignedToEmail(" analyst@nis2.com ");
 
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> {
             Incident incident = invocation.getArgument(0);
@@ -67,6 +68,7 @@ class IncidentServiceImplTest {
         assertEquals(IncidentSeverity.HIGH, response.getSeverity());
         assertEquals(IncidentStatus.OPEN, response.getStatus());
         assertEquals("admin@nis2.com", response.getReportedByEmail());
+        assertEquals("analyst@nis2.com", response.getAssignedToEmail());
     }
 
     @Test
@@ -129,6 +131,7 @@ class IncidentServiceImplTest {
         request.setDescription("Updated incident description with enough detail.");
         request.setSeverity(IncidentSeverity.CRITICAL);
         request.setStatus(IncidentStatus.IN_PROGRESS);
+        request.setAssignedToEmail("lead@nis2.com");
 
         when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
         when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -138,6 +141,7 @@ class IncidentServiceImplTest {
         assertEquals("Updated Incident", response.getTitle());
         assertEquals(IncidentSeverity.CRITICAL, response.getSeverity());
         assertEquals(IncidentStatus.IN_PROGRESS, response.getStatus());
+        assertEquals("lead@nis2.com", response.getAssignedToEmail());
     }
 
     @Test
@@ -160,6 +164,7 @@ class IncidentServiceImplTest {
         incident.setSeverity(IncidentSeverity.MEDIUM);
         incident.setStatus(IncidentStatus.OPEN);
         incident.setReportedByEmail("admin@nis2.com");
+        incident.setAssignedToEmail("analyst@nis2.com");
         incident.setCreatedAt(LocalDateTime.now());
         incident.setUpdatedAt(LocalDateTime.now());
 

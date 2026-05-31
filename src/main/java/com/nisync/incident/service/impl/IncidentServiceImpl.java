@@ -41,6 +41,7 @@ public class IncidentServiceImpl implements IncidentService {
         incident.setSeverity(request.getSeverity());
         incident.setStatus(IncidentStatus.OPEN);
         incident.setReportedByEmail(reportedByEmail);
+        incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
 
         Incident savedIncident = incidentRepository.save(incident);
 
@@ -98,6 +99,10 @@ public class IncidentServiceImpl implements IncidentService {
             incident.setStatus(request.getStatus());
         }
 
+        if (request.getAssignedToEmail() != null) {
+            incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
+        }
+
         Incident savedIncident = incidentRepository.save(incident);
 
         auditLogService.record(
@@ -143,6 +148,14 @@ public class IncidentServiceImpl implements IncidentService {
                 });
     }
 
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+
+        return email.trim();
+    }
+
     private Specification<Incident> buildIncidentSpecification(
             IncidentStatus status,
             IncidentSeverity severity,
@@ -166,9 +179,13 @@ public class IncidentServiceImpl implements IncidentService {
                         criteriaBuilder.lower(root.get("description")),
                         searchTerm
                 );
+                var assignedToPredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("assignedToEmail")),
+                        searchTerm
+                );
                 predicate = criteriaBuilder.and(
                         predicate,
-                        criteriaBuilder.or(titlePredicate, descriptionPredicate)
+                        criteriaBuilder.or(titlePredicate, descriptionPredicate, assignedToPredicate)
                 );
             }
 
