@@ -44,6 +44,8 @@ const formatDueAt = (dateTime?: string | null) => {
   return new Date(dateTime).toLocaleString();
 };
 
+const formatReportedAt = (dateTime: string) => new Date(dateTime).toLocaleString();
+
 const getDueStatus = (incident: IncidentResponse) => {
   if (!incident.dueAt) {
     return "No SLA";
@@ -426,6 +428,7 @@ function IncidentsPage() {
                   <th>Severity</th>
                   <th>Status</th>
                   <th>Reported By</th>
+                  <th>Reported</th>
                   <th>Assigned To</th>
                   <th>SLA Due</th>
                   <th>Actions</th>
@@ -449,6 +452,7 @@ function IncidentsPage() {
                       </span>
                     </td>
                     <td>{incident.reportedByEmail}</td>
+                    <td>{formatReportedAt(incident.createdAt)}</td>
                     <td>{incident.assignedToEmail || "Unassigned"}</td>
                     <td>
                       <span className={`sla-pill sla-${getDueStatus(incident).toLowerCase().replaceAll(" ", "-")}`}>
