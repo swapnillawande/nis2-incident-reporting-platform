@@ -10,6 +10,7 @@ export interface IncidentResponse {
   status: IncidentStatus;
   reportedByEmail: string;
   assignedToEmail: string | null;
+  dueAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +20,7 @@ export interface CreateIncidentRequest {
   description: string;
   severity: IncidentSeverity;
   assignedToEmail?: string;
+  dueAt?: string;
 }
 
 export interface UpdateIncidentRequest {
@@ -27,6 +29,7 @@ export interface UpdateIncidentRequest {
   severity?: IncidentSeverity;
   status?: IncidentStatus;
   assignedToEmail?: string;
+  dueAt?: string;
 }
 
 export interface IncidentNote {

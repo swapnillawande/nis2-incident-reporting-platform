@@ -25,6 +25,47 @@ const emptyCreateForm: CreateIncidentRequest = {
   description: "",
   severity: "MEDIUM",
   assignedToEmail: "",
+  dueAt: "",
+};
+
+const toDateTimeLocalValue = (dateTime?: string | null) => {
+  if (!dateTime) {
+    return "";
+  }
+
+  return dateTime.slice(0, 16);
+};
+
+const formatDueAt = (dateTime?: string | null) => {
+  if (!dateTime) {
+    return "No SLA";
+  }
+
+  return new Date(dateTime).toLocaleString();
+};
+
+const getDueStatus = (incident: IncidentResponse) => {
+  if (!incident.dueAt) {
+    return "No SLA";
+  }
+
+  if (["RESOLVED", "CLOSED"].includes(incident.status)) {
+    return "Completed";
+  }
+
+  const dueAtTime = new Date(incident.dueAt).getTime();
+  const now = Date.now();
+  const dayInMilliseconds = 24 * 60 * 60 * 1000;
+
+  if (dueAtTime < now) {
+    return "Overdue";
+  }
+
+  if (dueAtTime - now <= dayInMilliseconds) {
+    return "Due Soon";
+  }
+
+  return "On Track";
 };
 
 function IncidentsPage() {
@@ -107,7 +148,8 @@ function IncidentsPage() {
         !normalizedQuery ||
         response.title.toLowerCase().includes(normalizedQuery) ||
         response.description.toLowerCase().includes(normalizedQuery) ||
-        (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false);
+        (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false) ||
+        (response.dueAt ? formatDueAt(response.dueAt).toLowerCase().includes(normalizedQuery) : false);
 
       if (matchesStatus && matchesSeverity && matchesQuery) {
         setIncidents((currentIncidents) => [response, ...currentIncidents]);
@@ -130,6 +172,7 @@ function IncidentsPage() {
       severity: incident.severity,
       status: incident.status,
       assignedToEmail: incident.assignedToEmail ?? "",
+      dueAt: toDateTimeLocalValue(incident.dueAt),
     });
     setIncidentNotes([]);
     setNewNote("");
@@ -337,6 +380,17 @@ function IncidentsPage() {
             />
           </div>
 
+          <div className="form-group">
+            <label>SLA Due</label>
+            <input
+              type="datetime-local"
+              value={createForm.dueAt ?? ""}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, dueAt: event.target.value })
+              }
+            />
+          </div>
+
           <div className="form-group span-2">
             <label>Description</label>
             <textarea
@@ -373,6 +427,7 @@ function IncidentsPage() {
                   <th>Status</th>
                   <th>Reported By</th>
                   <th>Assigned To</th>
+                  <th>SLA Due</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -395,6 +450,12 @@ function IncidentsPage() {
                     </td>
                     <td>{incident.reportedByEmail}</td>
                     <td>{incident.assignedToEmail || "Unassigned"}</td>
+                    <td>
+                      <span className={`sla-pill sla-${getDueStatus(incident).toLowerCase().replaceAll(" ", "-")}`}>
+                        {getDueStatus(incident)}
+                      </span>
+                      <span className="table-description">{formatDueAt(incident.dueAt)}</span>
+                    </td>
                     <td>
                       <div className="table-actions">
                         <button className="btn-secondary compact" onClick={() => openEdit(incident)}>
@@ -489,6 +550,17 @@ function IncidentsPage() {
                     setEditForm({ ...editForm, assignedToEmail: event.target.value })
                   }
                   placeholder="analyst@nis2.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>SLA Due</label>
+                <input
+                  type="datetime-local"
+                  value={editForm.dueAt ?? ""}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, dueAt: event.target.value })
+                  }
                 />
               </div>
 
