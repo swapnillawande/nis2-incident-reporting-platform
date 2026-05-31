@@ -71,11 +71,32 @@ class IncidentServiceImplTest {
 
         when(incidentRepository.findAll()).thenReturn(List.of(firstIncident, secondIncident));
 
-        List<IncidentResponseDto> response = incidentService.getAllIncidents();
+        List<IncidentResponseDto> response = incidentService.getIncidents(null, null);
 
         assertEquals(2, response.size());
         assertEquals("First Incident", response.get(0).getTitle());
         assertEquals("Second Incident", response.get(1).getTitle());
+    }
+
+    @Test
+    void shouldFilterIncidentsByStatusAndSeveritySuccessfully() {
+        Incident incident = buildIncident(1L, "Filtered Incident");
+        incident.setStatus(IncidentStatus.IN_PROGRESS);
+        incident.setSeverity(IncidentSeverity.HIGH);
+
+        when(incidentRepository.findByStatusAndSeverity(
+                IncidentStatus.IN_PROGRESS,
+                IncidentSeverity.HIGH
+        )).thenReturn(List.of(incident));
+
+        List<IncidentResponseDto> response = incidentService.getIncidents(
+                IncidentStatus.IN_PROGRESS,
+                IncidentSeverity.HIGH
+        );
+
+        assertEquals(1, response.size());
+        assertEquals(IncidentStatus.IN_PROGRESS, response.get(0).getStatus());
+        assertEquals(IncidentSeverity.HIGH, response.get(0).getSeverity());
     }
 
     @Test

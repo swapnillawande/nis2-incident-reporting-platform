@@ -3,6 +3,8 @@ package com.nisync.incident.controller;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
+import com.nisync.incident.enums.IncidentSeverity;
+import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.service.IncidentService;
 
 import jakarta.validation.Valid;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,10 +46,13 @@ public class IncidentController {
     }
 
     @GetMapping
-    public List<IncidentResponseDto> getAllIncidents() {
-        logger.info("GET /incidents called");
+    public List<IncidentResponseDto> getIncidents(
+            @RequestParam(required = false) IncidentStatus status,
+            @RequestParam(required = false) IncidentSeverity severity) {
 
-        return incidentService.getAllIncidents();
+        logger.info("GET /incidents called. status: {}, severity: {}", status, severity);
+
+        return incidentService.getIncidents(status, severity);
     }
 
     @GetMapping("/{incidentId}")
