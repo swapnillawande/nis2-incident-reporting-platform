@@ -1,20 +1,26 @@
 services:
- 
+
   postgres:
     image: postgres:16
     container_name: nis2-postgres
     restart: always
     environment:
       POSTGRES_DB: nis2_platform
-      POSTGRES_USER: swapnil
-      POSTGRES_PASSWORD:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - nis2-network
- 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
   backend:
     build:
       context: ..
@@ -23,13 +29,16 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - nis2-network
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nis2_platform
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
 
   frontend:
     build:
@@ -42,8 +51,47 @@ services:
     networks:
       - nis2-network
 
+
+  seeder-users:
+    build:
+      context: ../infra/scripts
+    container_name: nis2-seeder-users
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - nis2-network
+    restart: "no"
+    command: ["sh", "-c", "sleep 20 && python sql-users.py"]
+    environment:
+      DB_HOST: postgres
+      DB_NAME: nis2_platform
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      SEED_DATA: "false"
+
+
+  seeder-incidents:
+    build:
+      context: ../infra/scripts
+    container_name: nis2-seeder-incidents
+    depends_on:
+      seeder-users:
+        condition: service_completed_successfully
+    networks:
+      - nis2-network
+    restart: "no"
+    command: ["sh", "-c", "sleep 30 && python sql-incidents.py"]
+    environment:
+      DB_HOST: postgres
+      DB_NAME: nis2_platform
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      SEED_DATA: "false"
+
+
 volumes:
   postgres_data:
- 
+
 networks:
   nis2-network:
