@@ -3,15 +3,28 @@ import { getAuthHeader } from "./userApi";
 import type {
   CreateIncidentRequest,
   IncidentResponse,
+  IncidentSeverity,
+  IncidentStatus,
   UpdateIncidentRequest,
 } from "../types/incident";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
-export const getAllIncidents = async (): Promise<IncidentResponse[]> => {
+export interface IncidentFilters {
+  status?: IncidentStatus | "";
+  severity?: IncidentSeverity | "";
+}
+
+export const getAllIncidents = async (
+  filters: IncidentFilters = {}
+): Promise<IncidentResponse[]> => {
   const response = await axios.get(`${API_BASE_URL}/incidents`, {
     headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      severity: filters.severity || undefined,
+    },
   });
 
   return response.data;

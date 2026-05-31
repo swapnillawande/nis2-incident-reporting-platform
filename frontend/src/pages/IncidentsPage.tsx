@@ -32,6 +32,8 @@ function IncidentsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
+  const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -53,7 +55,10 @@ function IncidentsPage() {
     setMessageType("");
 
     try {
-      const response = await getAllIncidents();
+      const response = await getAllIncidents({
+        status: statusFilter,
+        severity: severityFilter,
+      });
       setIncidents(response);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
@@ -63,7 +68,10 @@ function IncidentsPage() {
   };
 
   useEffect(() => {
-    getAllIncidents()
+    getAllIncidents({
+      status: statusFilter,
+      severity: severityFilter,
+    })
       .then((response) => {
         setIncidents(response);
       })
@@ -73,7 +81,7 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [statusFilter, severityFilter]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -81,7 +89,13 @@ function IncidentsPage() {
 
     try {
       const response = await createIncident(createForm);
-      setIncidents((currentIncidents) => [response, ...currentIncidents]);
+      const matchesStatus = !statusFilter || response.status === statusFilter;
+      const matchesSeverity = !severityFilter || response.severity === severityFilter;
+
+      if (matchesStatus && matchesSeverity) {
+        setIncidents((currentIncidents) => [response, ...currentIncidents]);
+      }
+
       setCreateForm(emptyCreateForm);
       showMessage("Incident created successfully", "success");
     } catch (error: unknown) {
@@ -160,6 +174,51 @@ function IncidentsPage() {
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
+
+      <section className="filter-bar">
+        <div className="filter-group">
+          <label>Status</label>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as IncidentStatus | "")}
+          >
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Severity</label>
+          <select
+            value={severityFilter}
+            onChange={(event) =>
+              setSeverityFilter(event.target.value as IncidentSeverity | "")
+            }
+          >
+            <option value="">All severities</option>
+            {SEVERITY_OPTIONS.map((severity) => (
+              <option key={severity} value={severity}>
+                {severity}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setStatusFilter("");
+            setSeverityFilter("");
+          }}
+          disabled={!statusFilter && !severityFilter}
+        >
+          Clear Filters
+        </button>
+      </section>
 
       <section className="table-panel incident-create-panel">
         <h3>Report Incident</h3>

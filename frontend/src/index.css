@@ -624,6 +624,25 @@ button:disabled {
   margin-bottom: 18px;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+  align-items: end;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.filter-group label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .incident-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px;
@@ -841,6 +860,7 @@ button:disabled {
   }
 
   .form-grid,
+  .filter-bar,
   .incident-form,
   .role-list {
     grid-template-columns: 1fr;
