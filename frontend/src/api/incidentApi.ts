@@ -16,6 +16,7 @@ const API_BASE_URL =
 export interface IncidentFilters {
   status?: IncidentStatus | "";
   severity?: IncidentSeverity | "";
+  assignedToEmail?: string;
   query?: string;
 }
 
@@ -51,6 +52,7 @@ export const getAllIncidents = async (
     params: {
       status: filters.status || undefined,
       severity: filters.severity || undefined,
+      assignedToEmail: filters.assignedToEmail?.trim() || undefined,
       q: filters.query?.trim() || undefined,
     },
   });

@@ -81,6 +81,7 @@ function IncidentsPage() {
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
+  const [assignedToFilter, setAssignedToFilter] = useState("");
   const [queryFilter, setQueryFilter] = useState("");
   const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
   const [newNote, setNewNote] = useState("");
@@ -110,6 +111,7 @@ function IncidentsPage() {
       const response = await getAllIncidents({
         status: statusFilter,
         severity: severityFilter,
+        assignedToEmail: assignedToFilter,
         query: queryFilter,
       });
       setIncidents(response);
@@ -124,6 +126,7 @@ function IncidentsPage() {
     getAllIncidents({
       status: statusFilter,
       severity: severityFilter,
+      assignedToEmail: assignedToFilter,
       query: queryFilter,
     })
       .then((response) => {
@@ -135,7 +138,7 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter, queryFilter]);
+  }, [statusFilter, severityFilter, assignedToFilter, queryFilter]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -145,6 +148,9 @@ function IncidentsPage() {
       const response = await createIncident(createForm);
       const matchesStatus = !statusFilter || response.status === statusFilter;
       const matchesSeverity = !severityFilter || response.severity === severityFilter;
+      const matchesAssignee =
+        !assignedToFilter.trim() ||
+        response.assignedToEmail?.toLowerCase() === assignedToFilter.trim().toLowerCase();
       const normalizedQuery = queryFilter.trim().toLowerCase();
       const matchesQuery =
         !normalizedQuery ||
@@ -153,7 +159,7 @@ function IncidentsPage() {
         (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false) ||
         (response.dueAt ? formatDueAt(response.dueAt).toLowerCase().includes(normalizedQuery) : false);
 
-      if (matchesStatus && matchesSeverity && matchesQuery) {
+      if (matchesStatus && matchesSeverity && matchesAssignee && matchesQuery) {
         setIncidents((currentIncidents) => [response, ...currentIncidents]);
       }
 
@@ -321,10 +327,31 @@ function IncidentsPage() {
             setQueryFilter("");
             setStatusFilter("");
             setSeverityFilter("");
+            setAssignedToFilter("");
           }}
-          disabled={!queryFilter && !statusFilter && !severityFilter}
+          disabled={!queryFilter && !statusFilter && !severityFilter && !assignedToFilter}
         >
           Clear Filters
+        </button>
+      </section>
+
+      <section className="filter-bar incident-assignee-bar">
+        <div className="filter-group">
+          <label>Assigned To</label>
+          <input
+            type="email"
+            value={assignedToFilter}
+            onChange={(event) => setAssignedToFilter(event.target.value)}
+            placeholder="analyst@nis2.com"
+          />
+        </div>
+
+        <button
+          className="btn-secondary"
+          onClick={() => setAssignedToFilter(currentUser?.email ?? "")}
+          disabled={!currentUser?.email}
+        >
+          Mine
         </button>
       </section>
       <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50 dark:!from-slate-900 dark:!via-slate-900 dark:!to-slate-800 dark:!border-slate-700">

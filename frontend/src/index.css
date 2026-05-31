@@ -645,6 +645,11 @@ button:disabled {
 
 .filter-group label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 
+.incident-assignee-bar {
+  grid-template-columns: minmax(240px, 1fr) auto;
+  margin-top: 14px;
+}
+
 .incident-form { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; }
 .incident-form .btn-primary { grid-column: 1 / -1; }
 
