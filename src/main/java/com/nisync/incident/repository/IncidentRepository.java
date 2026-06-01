@@ -1,6 +1,7 @@
 package com.nisync.incident.repository;
 
 import com.nisync.incident.entity.Incident;
+import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,8 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
 
     long countByStatus(IncidentStatus status);
 
+    long countBySeverity(IncidentSeverity severity);
+
     long countByDueAtBeforeAndStatusIn(LocalDateTime dueAt, Collection<IncidentStatus> statuses);
 
     long countByDueAtBetweenAndStatusIn(
@@ -22,6 +25,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
             Collection<IncidentStatus> statuses);
 
     long countByDueAtIsNullAndStatusIn(Collection<IncidentStatus> statuses);
+
+    long countByAssignedToEmailIsNullAndStatusIn(Collection<IncidentStatus> statuses);
+
+    long countByAssignedToEmailIsNotNullAndStatusIn(Collection<IncidentStatus> statuses);
 
     List<Incident> findTop5ByStatusInOrderByCreatedAtDesc(Collection<IncidentStatus> statuses);
 }

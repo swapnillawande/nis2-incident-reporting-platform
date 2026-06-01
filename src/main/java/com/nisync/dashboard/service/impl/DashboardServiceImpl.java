@@ -4,6 +4,7 @@ import com.nisync.dashboard.dto.DashboardSummaryDto;
 import com.nisync.dashboard.service.DashboardService;
 import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
+import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
 import com.nisync.user.enums.RoleName;
@@ -48,9 +49,15 @@ public class DashboardServiceImpl implements DashboardService {
                 inProgressIncidents,
                 resolvedIncidents,
                 closedIncidents,
+                incidentRepository.countBySeverity(IncidentSeverity.LOW),
+                incidentRepository.countBySeverity(IncidentSeverity.MEDIUM),
+                incidentRepository.countBySeverity(IncidentSeverity.HIGH),
+                incidentRepository.countBySeverity(IncidentSeverity.CRITICAL),
                 incidentRepository.countByDueAtBeforeAndStatusIn(now, activeStatuses),
                 incidentRepository.countByDueAtBetweenAndStatusIn(now, now.plusHours(24), activeStatuses),
-                incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses)
+                incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses),
+                incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(activeStatuses),
+                incidentRepository.countByAssignedToEmailIsNullAndStatusIn(activeStatuses)
         );
     }
 

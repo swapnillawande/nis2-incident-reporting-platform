@@ -54,6 +54,10 @@ class DashboardServiceImplTest {
         when(incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS)).thenReturn(2L);
         when(incidentRepository.countByStatus(IncidentStatus.RESOLVED)).thenReturn(4L);
         when(incidentRepository.countByStatus(IncidentStatus.CLOSED)).thenReturn(1L);
+        when(incidentRepository.countBySeverity(IncidentSeverity.LOW)).thenReturn(1L);
+        when(incidentRepository.countBySeverity(IncidentSeverity.MEDIUM)).thenReturn(2L);
+        when(incidentRepository.countBySeverity(IncidentSeverity.HIGH)).thenReturn(3L);
+        when(incidentRepository.countBySeverity(IncidentSeverity.CRITICAL)).thenReturn(4L);
         when(incidentRepository.countByDueAtBeforeAndStatusIn(
                 any(LocalDateTime.class),
                 any())).thenReturn(2L);
@@ -62,6 +66,8 @@ class DashboardServiceImplTest {
                 any(LocalDateTime.class),
                 any())).thenReturn(1L);
         when(incidentRepository.countByDueAtIsNullAndStatusIn(any())).thenReturn(3L);
+        when(incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(any())).thenReturn(4L);
+        when(incidentRepository.countByAssignedToEmailIsNullAndStatusIn(any())).thenReturn(1L);
 
         DashboardSummaryDto response = dashboardService.getSummary();
 
@@ -78,9 +84,15 @@ class DashboardServiceImplTest {
         assertEquals(2L, response.getInProgressIncidents());
         assertEquals(4L, response.getResolvedIncidents());
         assertEquals(1L, response.getClosedIncidents());
+        assertEquals(1L, response.getLowSeverityIncidents());
+        assertEquals(2L, response.getMediumSeverityIncidents());
+        assertEquals(3L, response.getHighSeverityIncidents());
+        assertEquals(4L, response.getCriticalSeverityIncidents());
         assertEquals(2L, response.getOverdueIncidents());
         assertEquals(1L, response.getDueSoonIncidents());
         assertEquals(3L, response.getUnscheduledActiveIncidents());
+        assertEquals(4L, response.getAssignedActiveIncidents());
+        assertEquals(1L, response.getUnassignedActiveIncidents());
     }
 
     @Test

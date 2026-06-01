@@ -15,9 +15,15 @@ public class DashboardSummaryDto {
     private long inProgressIncidents;
     private long resolvedIncidents;
     private long closedIncidents;
+    private long lowSeverityIncidents;
+    private long mediumSeverityIncidents;
+    private long highSeverityIncidents;
+    private long criticalSeverityIncidents;
     private long overdueIncidents;
     private long dueSoonIncidents;
     private long unscheduledActiveIncidents;
+    private long assignedActiveIncidents;
+    private long unassignedActiveIncidents;
 
     public DashboardSummaryDto() {
     }
@@ -36,9 +42,15 @@ public class DashboardSummaryDto {
             long inProgressIncidents,
             long resolvedIncidents,
             long closedIncidents,
+            long lowSeverityIncidents,
+            long mediumSeverityIncidents,
+            long highSeverityIncidents,
+            long criticalSeverityIncidents,
             long overdueIncidents,
             long dueSoonIncidents,
-            long unscheduledActiveIncidents) {
+            long unscheduledActiveIncidents,
+            long assignedActiveIncidents,
+            long unassignedActiveIncidents) {
         this.totalUsers = totalUsers;
         this.activeUsers = activeUsers;
         this.inactiveUsers = inactiveUsers;
@@ -52,9 +64,15 @@ public class DashboardSummaryDto {
         this.inProgressIncidents = inProgressIncidents;
         this.resolvedIncidents = resolvedIncidents;
         this.closedIncidents = closedIncidents;
+        this.lowSeverityIncidents = lowSeverityIncidents;
+        this.mediumSeverityIncidents = mediumSeverityIncidents;
+        this.highSeverityIncidents = highSeverityIncidents;
+        this.criticalSeverityIncidents = criticalSeverityIncidents;
         this.overdueIncidents = overdueIncidents;
         this.dueSoonIncidents = dueSoonIncidents;
         this.unscheduledActiveIncidents = unscheduledActiveIncidents;
+        this.assignedActiveIncidents = assignedActiveIncidents;
+        this.unassignedActiveIncidents = unassignedActiveIncidents;
     }
 
     public long getTotalUsers() {
@@ -161,6 +179,38 @@ public class DashboardSummaryDto {
         this.closedIncidents = closedIncidents;
     }
 
+    public long getLowSeverityIncidents() {
+        return lowSeverityIncidents;
+    }
+
+    public void setLowSeverityIncidents(long lowSeverityIncidents) {
+        this.lowSeverityIncidents = lowSeverityIncidents;
+    }
+
+    public long getMediumSeverityIncidents() {
+        return mediumSeverityIncidents;
+    }
+
+    public void setMediumSeverityIncidents(long mediumSeverityIncidents) {
+        this.mediumSeverityIncidents = mediumSeverityIncidents;
+    }
+
+    public long getHighSeverityIncidents() {
+        return highSeverityIncidents;
+    }
+
+    public void setHighSeverityIncidents(long highSeverityIncidents) {
+        this.highSeverityIncidents = highSeverityIncidents;
+    }
+
+    public long getCriticalSeverityIncidents() {
+        return criticalSeverityIncidents;
+    }
+
+    public void setCriticalSeverityIncidents(long criticalSeverityIncidents) {
+        this.criticalSeverityIncidents = criticalSeverityIncidents;
+    }
+
     public long getOverdueIncidents() {
         return overdueIncidents;
     }
@@ -183,5 +233,21 @@ public class DashboardSummaryDto {
 
     public void setUnscheduledActiveIncidents(long unscheduledActiveIncidents) {
         this.unscheduledActiveIncidents = unscheduledActiveIncidents;
+    }
+
+    public long getAssignedActiveIncidents() {
+        return assignedActiveIncidents;
+    }
+
+    public void setAssignedActiveIncidents(long assignedActiveIncidents) {
+        this.assignedActiveIncidents = assignedActiveIncidents;
+    }
+
+    public long getUnassignedActiveIncidents() {
+        return unassignedActiveIncidents;
+    }
+
+    public void setUnassignedActiveIncidents(long unassignedActiveIncidents) {
+        this.unassignedActiveIncidents = unassignedActiveIncidents;
     }
 }
