@@ -14,6 +14,14 @@ const formatDateTime = (dateTime?: string | null) => {
   return new Date(dateTime).toLocaleString();
 };
 
+const formatPercent = (value: number, total: number) => {
+  if (total <= 0) {
+    return "0%";
+  }
+
+  return `${Math.round((value / total) * 100)}%`;
+};
+
 function DashboardPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -89,6 +97,45 @@ function DashboardPage() {
       tone: "success",
     },
   ];
+  const userStatusBreakdown = [
+    {
+      label: "Active",
+      value: summary?.activeUsers ?? 0,
+      tone: "success",
+    },
+    {
+      label: "Inactive",
+      value: summary?.inactiveUsers ?? 0,
+      tone: "neutral",
+    },
+    {
+      label: "Suspended",
+      value: summary?.suspendedUsers ?? 0,
+      tone: "danger",
+    },
+  ];
+  const userRoleBreakdown = [
+    {
+      label: "Admins",
+      value: summary?.adminUsers ?? 0,
+      tone: "info",
+    },
+    {
+      label: "Security Analysts",
+      value: summary?.securityAnalystUsers ?? 0,
+      tone: "success",
+    },
+    {
+      label: "Compliance Officers",
+      value: summary?.complianceOfficerUsers ?? 0,
+      tone: "warning",
+    },
+    {
+      label: "Auditors",
+      value: summary?.auditorUsers ?? 0,
+      tone: "neutral",
+    },
+  ];
 
   return (
     <div className="page-container">
@@ -124,6 +171,49 @@ function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <section className="dashboard-section">
+        <div className="dashboard-section-header">
+          <div>
+            <span className="badge">Access Control</span>
+            <h2>User Access Summary</h2>
+          </div>
+        </div>
+
+        <div className="access-summary-grid">
+          <div className="access-summary-panel">
+            <h3>Account Status</h3>
+
+            {userStatusBreakdown.map((item) => (
+              <div className="access-summary-row" key={item.label}>
+                <div>
+                  <span>{item.label}</span>
+                  <small>{formatPercent(item.value, summary?.totalUsers ?? 0)} of users</small>
+                </div>
+                <strong className={`access-summary-value access-summary-${item.tone}`}>
+                  {summary ? item.value : "--"}
+                </strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="access-summary-panel">
+            <h3>Role Coverage</h3>
+
+            {userRoleBreakdown.map((item) => (
+              <div className="access-summary-row" key={item.label}>
+                <div>
+                  <span>{item.label}</span>
+                  <small>{formatPercent(item.value, summary?.totalUsers ?? 0)} of users</small>
+                </div>
+                <strong className={`access-summary-value access-summary-${item.tone}`}>
+                  {summary ? item.value : "--"}
+                </strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="dashboard-section">
         <div className="dashboard-section-header">
