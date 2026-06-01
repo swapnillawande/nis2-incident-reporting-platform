@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { getApiErrorMessage } from "../api/errorUtils";
-import { createUser, deleteUser, getAllUsers, updateUser } from "../api/userApi";
+import {
+  createUser,
+  deleteUser,
+  exportUsersCsv,
+  getAllUsers,
+  updateUser,
+} from "../api/userApi";
 import type {
   CreateUserRequest,
   RoleName,
@@ -43,6 +49,7 @@ function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleName | "">("");
   const [createForm, setCreateForm] = useState<CreateUserRequest>(emptyCreateForm);
   const [isCreating, setIsCreating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -170,6 +177,35 @@ function UsersPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    setMessage("");
+    setMessageType("");
+
+    try {
+      const blob = await exportUsersCsv({
+        status: statusFilter,
+        role: roleFilter,
+        query: queryFilter,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+
+      link.href = url;
+      link.download = `users-export-${timestamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showMessage("Users exported successfully", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to export users"), "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="page-container">
@@ -195,9 +231,19 @@ function UsersPage() {
           </p>
         </div>
 
-        <button className="btn-secondary" onClick={loadUsers} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="page-header-actions">
+          <button
+            className="btn-secondary"
+            onClick={handleExportCsv}
+            disabled={isExporting}
+          >
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+
+          <button className="btn-secondary" onClick={loadUsers} disabled={isLoading}>
+            Refresh
+          </button>
+        </div>
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}

@@ -80,6 +80,22 @@ export const getAllUsers = async (
   return response.data;
 };
 
+export const exportUsersCsv = async (
+  filters: UserFilters = {}
+): Promise<Blob> => {
+  const response = await axios.get(`${API_BASE_URL}/users/export`, {
+    headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      role: filters.role || undefined,
+      q: filters.query?.trim() || undefined,
+    },
+    responseType: "blob",
+  });
+
+  return response.data;
+};
+
 export const updateUser = async (
   userId: number,
   data: UpdateUserRequest
