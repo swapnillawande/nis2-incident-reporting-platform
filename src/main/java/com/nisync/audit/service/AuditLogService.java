@@ -14,7 +14,9 @@ public interface AuditLogService {
             String resourceType,
             String query,
             int page,
-            int size);
+            int size,
+            String sortBy,
+            String sortDir);
 
     String exportAuditLogsCsv(String action, String resourceType, String query);
 }

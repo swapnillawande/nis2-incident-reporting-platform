@@ -117,10 +117,21 @@ public class UserController {
             @RequestParam(name = "role", required = false) RoleName role,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
-        logger.info("GET /users called. status: {}, role: {}, query: {}, page: {}, size: {}", status, role, query, page, size);
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
+        logger.info(
+                "GET /users called. status: {}, role: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                status,
+                role,
+                query,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
 
-        return userService.getAllUsers(status, role, query, page, size);
+        return userService.getAllUsers(status, role, query, page, size, sortBy, sortDir);
     }
 
     @GetMapping("/export")

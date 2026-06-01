@@ -72,10 +72,18 @@ class AuditLogServiceImplTest {
         auditLog.setDetails("User login");
         auditLog.setCreatedAt(LocalDateTime.now());
 
-        when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
+        when(auditLogRepository.findAll(anyAuditLogSpecification(), anyCreatedAtDescPageable()))
                 .thenReturn(new PageImpl<>(List.of(auditLog)));
 
-        PagedResponseDto<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(null, null, null, 0, 10);
+        PagedResponseDto<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(
+                null,
+                null,
+                null,
+                0,
+                10,
+                "createdAt",
+                "desc"
+        );
 
         assertEquals(1, response.getContent().size());
         assertEquals("USER_LOGIN", response.getContent().get(0).getAction());
@@ -93,7 +101,7 @@ class AuditLogServiceImplTest {
         auditLog.setDetails("Incident updated");
         auditLog.setCreatedAt(LocalDateTime.now());
 
-        when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
+        when(auditLogRepository.findAll(anyAuditLogSpecification(), anyActionAscPageable()))
                 .thenReturn(new PageImpl<>(List.of(auditLog)));
 
         PagedResponseDto<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(
@@ -101,7 +109,9 @@ class AuditLogServiceImplTest {
                 "INCIDENT",
                 "analyst",
                 0,
-                10
+                10,
+                "action",
+                "asc"
         );
 
         assertEquals(1, response.getContent().size());
@@ -138,5 +148,15 @@ class AuditLogServiceImplTest {
     private Sort anyCreatedAtDescSort() {
         return argThat(sort -> sort.getOrderFor("createdAt") != null
                 && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyCreatedAtDescPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyActionAscPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("action") != null
+                && Sort.Direction.ASC.equals(pageable.getSort().getOrderFor("action").getDirection()));
     }
 }

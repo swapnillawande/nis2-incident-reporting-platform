@@ -22,7 +22,14 @@ public interface UserService {
     
     UserResponseDto getUserById(Long userId);
     
-    PagedResponseDto<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query, int page, int size);
+    PagedResponseDto<UserResponseDto> getAllUsers(
+            UserStatus status,
+            RoleName role,
+            String query,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 
     String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail);
     
