@@ -38,6 +38,11 @@ export interface BulkIncidentStatusUpdateRequest {
   status: IncidentStatus;
 }
 
+export interface BulkIncidentAssignmentRequest {
+  incidentIds: number[];
+  assignedToEmail?: string;
+}
+
 export interface IncidentNote {
   id: number;
   incidentId: number;

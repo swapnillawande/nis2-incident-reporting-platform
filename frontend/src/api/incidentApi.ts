@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getAuthHeader } from "./userApi";
 import type {
+  BulkIncidentAssignmentRequest,
   BulkIncidentStatusUpdateRequest,
   CreateIncidentRequest,
   CreateIncidentNoteRequest,
@@ -126,6 +127,27 @@ export const bulkUpdateIncidentStatus = async (
 ): Promise<IncidentResponse[]> => {
   const response = await axios.put(`${API_BASE_URL}/incidents/bulk-status`, data, {
     headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const bulkAssignIncidents = async (
+  data: BulkIncidentAssignmentRequest
+): Promise<IncidentResponse[]> => {
+  const response = await axios.put(`${API_BASE_URL}/incidents/bulk-assignment`, data, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const bulkUnassignIncidents = async (
+  data: Pick<BulkIncidentAssignmentRequest, "incidentIds">
+): Promise<IncidentResponse[]> => {
+  const response = await axios.delete(`${API_BASE_URL}/incidents/bulk-assignment`, {
+    headers: getAuthHeader(),
+    data,
   });
 
   return response.data;

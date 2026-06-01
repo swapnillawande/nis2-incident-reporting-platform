@@ -6,6 +6,8 @@ import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
   assignIncidentToMe,
+  bulkAssignIncidents,
+  bulkUnassignIncidents,
   bulkUpdateIncidentStatus,
   createIncident,
   deleteIncident,
@@ -113,6 +115,7 @@ function IncidentsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [isBulkAssigning, setIsBulkAssigning] = useState(false);
   const [assignmentUpdatingId, setAssignmentUpdatingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
@@ -132,6 +135,7 @@ function IncidentsPage() {
     () => new Set()
   );
   const [bulkStatus, setBulkStatus] = useState<IncidentStatus>("IN_PROGRESS");
+  const [bulkAssignedToEmail, setBulkAssignedToEmail] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalIncidents, setTotalIncidents] = useState(0);
@@ -417,6 +421,53 @@ function IncidentsPage() {
       showMessage(getApiErrorMessage(error, "Failed to update selected incidents"), "error");
     } finally {
       setIsBulkUpdating(false);
+    }
+  };
+
+  const handleBulkAssign = async (assignedToEmail: string) => {
+    const incidentIds = Array.from(selectedIncidentIds);
+    const normalizedAssignedToEmail = assignedToEmail.trim();
+
+    if (incidentIds.length === 0 || !normalizedAssignedToEmail) {
+      return;
+    }
+
+    setIsBulkAssigning(true);
+
+    try {
+      const updatedIncidents = await bulkAssignIncidents({
+        incidentIds,
+        assignedToEmail: normalizedAssignedToEmail,
+      });
+      await loadIncidents(page, pageSize);
+      setSelectedIncidentIds(new Set());
+      setBulkAssignedToEmail("");
+      showMessage(`${updatedIncidents.length} incidents assigned to ${normalizedAssignedToEmail}`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to assign selected incidents"), "error");
+    } finally {
+      setIsBulkAssigning(false);
+    }
+  };
+
+  const handleBulkUnassign = async () => {
+    const incidentIds = Array.from(selectedIncidentIds);
+
+    if (incidentIds.length === 0) {
+      return;
+    }
+
+    setIsBulkAssigning(true);
+
+    try {
+      const updatedIncidents = await bulkUnassignIncidents({ incidentIds });
+      await loadIncidents(page, pageSize);
+      setSelectedIncidentIds(new Set());
+      showMessage(`${updatedIncidents.length} incidents unassigned`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to unassign selected incidents"), "error");
+    } finally {
+      setIsBulkAssigning(false);
     }
   };
 
@@ -775,15 +826,48 @@ function IncidentsPage() {
           <button
             className="btn-secondary"
             onClick={handleBulkStatusUpdate}
-            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating || isBulkAssigning}
           >
             {isBulkUpdating ? "Updating..." : "Update Status"}
+          </button>
+
+          <input
+            aria-label="Bulk assigned email"
+            className="bulk-assignment-input"
+            placeholder="assignee@email.com"
+            value={bulkAssignedToEmail}
+            onChange={(event) => setBulkAssignedToEmail(event.target.value)}
+            disabled={selectedIncidentIds.size === 0 || isBulkAssigning}
+          />
+
+          <button
+            className="btn-secondary"
+            onClick={() => handleBulkAssign(bulkAssignedToEmail)}
+            disabled={selectedIncidentIds.size === 0 || !bulkAssignedToEmail.trim() || isBulkAssigning}
+          >
+            {isBulkAssigning ? "Assigning..." : "Assign"}
+          </button>
+
+          <button
+            className="btn-secondary"
+            onClick={() => handleBulkAssign(currentUser?.email ?? "")}
+            disabled={selectedIncidentIds.size === 0 || !currentUser?.email || isBulkAssigning}
+          >
+            Assign me
+          </button>
+
+          <button
+            className="btn-secondary"
+            onClick={handleBulkUnassign}
+            disabled={selectedIncidentIds.size === 0 || isBulkAssigning}
+          >
+            Unassign
           </button>
 
           <button
             className="btn-secondary"
             onClick={() => setSelectedIncidentIds(new Set())}
-            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating || isBulkAssigning}
           >
             Clear
           </button>

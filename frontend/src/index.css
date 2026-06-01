@@ -842,6 +842,11 @@ button:disabled {
   border-radius: 14px;
 }
 
+.bulk-assignment-input {
+  width: 210px;
+  min-height: 44px;
+}
+
 .pagination-bar {
   display: flex;
   align-items: center;
