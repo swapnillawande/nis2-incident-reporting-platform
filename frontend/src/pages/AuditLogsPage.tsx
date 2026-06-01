@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAuditLogs } from "../api/auditApi";
+import { exportAuditLogsCsv, getAuditLogs } from "../api/auditApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import type { AuditLogResponse } from "../types/audit";
 
@@ -27,6 +27,7 @@ function AuditLogsPage() {
   const isAdmin = currentUser?.roles?.includes("ADMIN");
   const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(isAdmin);
+  const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [actionFilter, setActionFilter] = useState("");
@@ -54,6 +55,33 @@ function AuditLogsPage() {
       showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+
+    try {
+      const csvBlob = await exportAuditLogsCsv({
+        action: actionFilter,
+        resourceType: resourceTypeFilter,
+        query: queryFilter,
+      });
+      const downloadUrl = URL.createObjectURL(csvBlob);
+      const downloadLink = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `audit-logs-export-${timestamp}.csv`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(downloadUrl);
+      showMessage("Audit CSV exported", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to export audit logs"), "error");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -103,9 +131,14 @@ function AuditLogsPage() {
           </p>
         </div>
 
-        <button className="btn-secondary" onClick={loadAuditLogs} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="page-header-actions">
+          <button className="btn-secondary" onClick={handleExportCsv} disabled={isExporting}>
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+          <button className="btn-secondary" onClick={loadAuditLogs} disabled={isLoading}>
+            Refresh
+          </button>
+        </div>
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}

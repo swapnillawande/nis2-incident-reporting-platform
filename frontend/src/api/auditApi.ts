@@ -25,3 +25,19 @@ export const getAuditLogs = async (
 
   return response.data;
 };
+
+export const exportAuditLogsCsv = async (
+  filters: AuditLogFilters = {}
+): Promise<Blob> => {
+  const response = await axios.get(`${API_BASE_URL}/audit-logs/export`, {
+    headers: getAuthHeader(),
+    params: {
+      action: filters.action || undefined,
+      resourceType: filters.resourceType || undefined,
+      q: filters.query?.trim() || undefined,
+    },
+    responseType: "blob",
+  });
+
+  return response.data;
+};
