@@ -7,6 +7,8 @@ import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
+import com.nisync.incident.enums.IncidentAssignmentState;
+import com.nisync.incident.enums.IncidentDueState;
 import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.note.dto.CreateIncidentNoteRequestDto;
@@ -70,6 +72,8 @@ public class IncidentController {
             @RequestParam(name = "status", required = false) IncidentStatus status,
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
+            @RequestParam(name = "assignmentState", required = false) IncidentAssignmentState assignmentState,
+            @RequestParam(name = "dueState", required = false) IncidentDueState dueState,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "createdFrom", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
@@ -85,10 +89,12 @@ public class IncidentController {
             @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
 
         logger.info(
-                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, assignmentState: {}, dueState: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,
@@ -104,6 +110,8 @@ public class IncidentController {
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,
@@ -121,6 +129,8 @@ public class IncidentController {
             @RequestParam(name = "status", required = false) IncidentStatus status,
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
+            @RequestParam(name = "assignmentState", required = false) IncidentAssignmentState assignmentState,
+            @RequestParam(name = "dueState", required = false) IncidentDueState dueState,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "createdFrom", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
@@ -133,11 +143,13 @@ public class IncidentController {
             Authentication authentication) {
 
         logger.info(
-                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}",
+                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, assignmentState: {}, dueState: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}",
                 authentication.getName(),
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,
@@ -149,6 +161,8 @@ public class IncidentController {
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,

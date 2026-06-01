@@ -7,6 +7,8 @@ import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
 import com.nisync.incident.entity.Incident;
+import com.nisync.incident.enums.IncidentAssignmentState;
+import com.nisync.incident.enums.IncidentDueState;
 import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
@@ -98,6 +100,8 @@ class IncidentServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 0,
                 10,
                 "createdAt",
@@ -122,6 +126,8 @@ class IncidentServiceImplTest {
                 IncidentStatus.IN_PROGRESS,
                 IncidentSeverity.HIGH,
                 "analyst@nis2.com",
+                IncidentAssignmentState.ASSIGNED,
+                IncidentDueState.DUE_SOON,
                 "filtered",
                 LocalDateTime.of(2026, 5, 1, 0, 0),
                 LocalDateTime.of(2026, 6, 30, 23, 59),
@@ -355,6 +361,8 @@ class IncidentServiceImplTest {
                 IncidentStatus.OPEN,
                 IncidentSeverity.MEDIUM,
                 "analyst@nis2.com",
+                IncidentAssignmentState.ASSIGNED,
+                IncidentDueState.DUE_SOON,
                 "csv",
                 LocalDateTime.of(2026, 5, 1, 0, 0),
                 LocalDateTime.of(2026, 6, 30, 23, 59),

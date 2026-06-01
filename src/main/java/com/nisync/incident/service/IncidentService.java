@@ -4,6 +4,8 @@ import com.nisync.common.response.PagedResponseDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
+import com.nisync.incident.enums.IncidentAssignmentState;
+import com.nisync.incident.enums.IncidentDueState;
 import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 
@@ -18,6 +20,8 @@ public interface IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
+            IncidentAssignmentState assignmentState,
+            IncidentDueState dueState,
             String query,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,
@@ -32,6 +36,8 @@ public interface IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
+            IncidentAssignmentState assignmentState,
+            IncidentDueState dueState,
             String query,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,

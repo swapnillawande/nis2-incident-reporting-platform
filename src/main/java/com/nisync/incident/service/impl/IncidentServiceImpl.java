@@ -8,6 +8,8 @@ import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
 import com.nisync.incident.entity.Incident;
+import com.nisync.incident.enums.IncidentAssignmentState;
+import com.nisync.incident.enums.IncidentDueState;
 import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
@@ -75,6 +77,8 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
+            IncidentAssignmentState assignmentState,
+            IncidentDueState dueState,
             String query,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,
@@ -85,10 +89,12 @@ public class IncidentServiceImpl implements IncidentService {
             String sortBy,
             String sortDir) {
         logger.info(
-                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, assignmentState: {}, dueState: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,
@@ -105,6 +111,8 @@ public class IncidentServiceImpl implements IncidentService {
                                 status,
                                 severity,
                                 assignedToEmail,
+                                assignmentState,
+                                dueState,
                                 query,
                                 createdFrom,
                                 createdTo,
@@ -123,6 +131,8 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
+            IncidentAssignmentState assignmentState,
+            IncidentDueState dueState,
             String query,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,
@@ -131,10 +141,12 @@ public class IncidentServiceImpl implements IncidentService {
             String actorEmail) {
 
         logger.info(
-                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, actor: {}",
+                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, assignmentState: {}, dueState: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, actor: {}",
                 status,
                 severity,
                 assignedToEmail,
+                assignmentState,
+                dueState,
                 query,
                 createdFrom,
                 createdTo,
@@ -144,7 +156,18 @@ public class IncidentServiceImpl implements IncidentService {
         );
 
         List<Incident> incidents = incidentRepository.findAll(
-                buildIncidentSpecification(status, severity, assignedToEmail, query, createdFrom, createdTo, dueFrom, dueTo),
+                buildIncidentSpecification(
+                        status,
+                        severity,
+                        assignedToEmail,
+                        assignmentState,
+                        dueState,
+                        query,
+                        createdFrom,
+                        createdTo,
+                        dueFrom,
+                        dueTo
+                ),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
@@ -415,6 +438,8 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
+            IncidentAssignmentState assignmentState,
+            IncidentDueState dueState,
             String query,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,
@@ -439,6 +464,39 @@ public class IncidentServiceImpl implements IncidentService {
                                 criteriaBuilder.lower(root.get("assignedToEmail")),
                                 assignedToEmail.trim().toLowerCase()
                         )
+                );
+            }
+
+            if (assignmentState == IncidentAssignmentState.ASSIGNED) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.isNotNull(root.get("assignedToEmail")));
+            }
+
+            if (assignmentState == IncidentAssignmentState.UNASSIGNED) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.isNull(root.get("assignedToEmail")));
+            }
+
+            if (dueState == IncidentDueState.OVERDUE) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThan(root.get("dueAt"), LocalDateTime.now()),
+                        root.get("status").in(IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS)
+                );
+            }
+
+            if (dueState == IncidentDueState.DUE_SOON) {
+                LocalDateTime now = LocalDateTime.now();
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.between(root.get("dueAt"), now, now.plusHours(24)),
+                        root.get("status").in(IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS)
+                );
+            }
+
+            if (dueState == IncidentDueState.NO_SLA) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.isNull(root.get("dueAt")),
+                        root.get("status").in(IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS)
                 );
             }
 
