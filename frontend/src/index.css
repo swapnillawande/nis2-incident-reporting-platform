@@ -718,6 +718,16 @@ button:disabled {
   margin-top: 14px;
 }
 
+.date-filter-bar {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  margin-top: 14px;
+}
+
+.compact-date-filter-bar {
+  grid-template-columns: repeat(2, minmax(180px, 260px));
+  justify-content: start;
+}
+
 .sort-bar {
   display: flex;
   justify-content: flex-end;

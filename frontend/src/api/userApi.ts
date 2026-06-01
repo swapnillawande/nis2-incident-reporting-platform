@@ -64,6 +64,8 @@ export interface UserFilters extends PaginationParams {
   status?: UserStatus | "";
   role?: RoleName | "";
   query?: string;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export const getAllUsers = async (
@@ -75,6 +77,8 @@ export const getAllUsers = async (
       status: filters.status || undefined,
       role: filters.role || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
       page: filters.page,
       size: filters.size,
       sortBy: filters.sortBy,
@@ -94,6 +98,8 @@ export const exportUsersCsv = async (
       status: filters.status || undefined,
       role: filters.role || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
     },
     responseType: "blob",
   });

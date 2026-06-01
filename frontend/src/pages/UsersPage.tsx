@@ -57,6 +57,8 @@ function UsersPage() {
   const [queryFilter, setQueryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "">("");
   const [roleFilter, setRoleFilter] = useState<RoleName | "">("");
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
   const [createForm, setCreateForm] = useState<CreateUserRequest>(emptyCreateForm);
   const [isCreating, setIsCreating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -82,6 +84,8 @@ function UsersPage() {
         status: statusFilter,
         role: roleFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
         page: targetPage,
         size: targetSize,
         sortBy,
@@ -108,6 +112,8 @@ function UsersPage() {
       status: statusFilter,
       role: roleFilter,
       query: queryFilter,
+      createdFrom: createdFromFilter,
+      createdTo: createdToFilter,
       page,
       size: pageSize,
       sortBy,
@@ -126,7 +132,18 @@ function UsersPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, statusFilter, roleFilter, queryFilter, page, pageSize, sortBy, sortDir]);
+  }, [
+    isAdmin,
+    statusFilter,
+    roleFilter,
+    queryFilter,
+    createdFromFilter,
+    createdToFilter,
+    page,
+    pageSize,
+    sortBy,
+    sortDir,
+  ]);
 
   const openEdit = (user: UserResponse) => {
     setSelectedUser(user);
@@ -332,12 +349,46 @@ function UsersPage() {
             setQueryFilter("");
             setStatusFilter("");
             setRoleFilter("");
+            setCreatedFromFilter("");
+            setCreatedToFilter("");
             setPage(0);
           }}
-          disabled={!queryFilter && !statusFilter && !roleFilter}
+          disabled={
+            !queryFilter &&
+            !statusFilter &&
+            !roleFilter &&
+            !createdFromFilter &&
+            !createdToFilter
+          }
         >
           Clear Filters
         </button>
+      </section>
+
+      <section className="filter-bar date-filter-bar compact-date-filter-bar">
+        <div className="filter-group">
+          <label>Created From</label>
+          <input
+            type="datetime-local"
+            value={createdFromFilter}
+            onChange={(event) => {
+              setCreatedFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>Created To</label>
+          <input
+            type="datetime-local"
+            value={createdToFilter}
+            onChange={(event) => {
+              setCreatedToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
       </section>
 
       <section className="sort-bar">

@@ -42,6 +42,8 @@ function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState("");
   const [queryFilter, setQueryFilter] = useState("");
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalAuditLogs, setTotalAuditLogs] = useState(0);
@@ -64,6 +66,8 @@ function AuditLogsPage() {
         action: actionFilter,
         resourceType: resourceTypeFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
         page: targetPage,
         size: targetSize,
         sortBy,
@@ -117,6 +121,8 @@ function AuditLogsPage() {
       action: actionFilter,
       resourceType: resourceTypeFilter,
       query: queryFilter,
+      createdFrom: createdFromFilter,
+      createdTo: createdToFilter,
       page,
       size: pageSize,
       sortBy,
@@ -135,7 +141,18 @@ function AuditLogsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter, page, pageSize, sortBy, sortDir]);
+  }, [
+    isAdmin,
+    actionFilter,
+    resourceTypeFilter,
+    queryFilter,
+    createdFromFilter,
+    createdToFilter,
+    page,
+    pageSize,
+    sortBy,
+    sortDir,
+  ]);
 
   if (!isAdmin) {
     return (
@@ -229,12 +246,46 @@ function AuditLogsPage() {
             setQueryFilter("");
             setActionFilter("");
             setResourceTypeFilter("");
+            setCreatedFromFilter("");
+            setCreatedToFilter("");
             setPage(0);
           }}
-          disabled={!queryFilter && !actionFilter && !resourceTypeFilter}
+          disabled={
+            !queryFilter &&
+            !actionFilter &&
+            !resourceTypeFilter &&
+            !createdFromFilter &&
+            !createdToFilter
+          }
         >
           Clear Filters
         </button>
+      </section>
+
+      <section className="filter-bar date-filter-bar compact-date-filter-bar">
+        <div className="filter-group">
+          <label>Created From</label>
+          <input
+            type="datetime-local"
+            value={createdFromFilter}
+            onChange={(event) => {
+              setCreatedFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>Created To</label>
+          <input
+            type="datetime-local"
+            value={createdToFilter}
+            onChange={(event) => {
+              setCreatedToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
       </section>
 
       <section className="sort-bar">

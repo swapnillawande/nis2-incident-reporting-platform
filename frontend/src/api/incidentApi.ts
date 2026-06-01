@@ -20,6 +20,10 @@ export interface IncidentFilters extends PaginationParams {
   severity?: IncidentSeverity | "";
   assignedToEmail?: string;
   query?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  dueFrom?: string;
+  dueTo?: string;
 }
 
 const cleanCreateIncidentPayload = (
@@ -56,6 +60,10 @@ export const getAllIncidents = async (
       severity: filters.severity || undefined,
       assignedToEmail: filters.assignedToEmail?.trim() || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
+      dueFrom: filters.dueFrom || undefined,
+      dueTo: filters.dueTo || undefined,
       page: filters.page,
       size: filters.size,
       sortBy: filters.sortBy,
@@ -76,6 +84,10 @@ export const exportIncidentsCsv = async (
       severity: filters.severity || undefined,
       assignedToEmail: filters.assignedToEmail?.trim() || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
+      dueFrom: filters.dueFrom || undefined,
+      dueTo: filters.dueTo || undefined,
     },
     responseType: "blob",
   });

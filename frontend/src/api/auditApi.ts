@@ -10,6 +10,8 @@ export interface AuditLogFilters extends PaginationParams {
   action?: string;
   resourceType?: string;
   query?: string;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export const getAuditLogs = async (
@@ -21,6 +23,8 @@ export const getAuditLogs = async (
       action: filters.action || undefined,
       resourceType: filters.resourceType || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
       page: filters.page,
       size: filters.size,
       sortBy: filters.sortBy,
@@ -40,6 +44,8 @@ export const exportAuditLogsCsv = async (
       action: filters.action || undefined,
       resourceType: filters.resourceType || undefined,
       q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
     },
     responseType: "blob",
   });

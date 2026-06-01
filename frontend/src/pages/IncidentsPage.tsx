@@ -98,6 +98,10 @@ function IncidentsPage() {
   const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
   const [assignedToFilter, setAssignedToFilter] = useState("");
   const [queryFilter, setQueryFilter] = useState("");
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
+  const [dueFromFilter, setDueFromFilter] = useState("");
+  const [dueToFilter, setDueToFilter] = useState("");
   const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
@@ -147,6 +151,10 @@ function IncidentsPage() {
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
+        dueFrom: dueFromFilter,
+        dueTo: dueToFilter,
         page: targetPage,
         size: targetSize,
         sortBy,
@@ -171,6 +179,10 @@ function IncidentsPage() {
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
+        dueFrom: dueFromFilter,
+        dueTo: dueToFilter,
         page,
         size: pageSize,
         sortBy,
@@ -190,7 +202,20 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter, assignedToFilter, queryFilter, page, pageSize, sortBy, sortDir]);
+  }, [
+    statusFilter,
+    severityFilter,
+    assignedToFilter,
+    queryFilter,
+    createdFromFilter,
+    createdToFilter,
+    dueFromFilter,
+    dueToFilter,
+    page,
+    pageSize,
+    sortBy,
+    sortDir,
+  ]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -464,9 +489,22 @@ function IncidentsPage() {
             setStatusFilter("");
             setSeverityFilter("");
             setAssignedToFilter("");
+            setCreatedFromFilter("");
+            setCreatedToFilter("");
+            setDueFromFilter("");
+            setDueToFilter("");
             setPage(0);
           }}
-          disabled={!queryFilter && !statusFilter && !severityFilter && !assignedToFilter}
+          disabled={
+            !queryFilter &&
+            !statusFilter &&
+            !severityFilter &&
+            !assignedToFilter &&
+            !createdFromFilter &&
+            !createdToFilter &&
+            !dueFromFilter &&
+            !dueToFilter
+          }
         >
           Clear Filters
         </button>
@@ -496,6 +534,53 @@ function IncidentsPage() {
         >
           Mine
         </button>
+      </section>
+
+      <section className="filter-bar date-filter-bar">
+        <div className="filter-group">
+          <label>Created From</label>
+          <input
+            type="datetime-local"
+            value={createdFromFilter}
+            onChange={(event) => {
+              setCreatedFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>Created To</label>
+          <input
+            type="datetime-local"
+            value={createdToFilter}
+            onChange={(event) => {
+              setCreatedToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>SLA From</label>
+          <input
+            type="datetime-local"
+            value={dueFromFilter}
+            onChange={(event) => {
+              setDueFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>SLA To</label>
+          <input
+            type="datetime-local"
+            value={dueToFilter}
+            onChange={(event) => {
+              setDueToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
       </section>
 
       <section className="sort-bar">
