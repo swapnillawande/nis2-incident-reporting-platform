@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PaginationControls from "../components/PaginationControls";
 import SavedViewControls from "../components/SavedViewControls";
 import SortControls from "../components/SortControls";
@@ -24,6 +25,8 @@ import {
 } from "../api/savedViewApi";
 import type {
   CreateIncidentRequest,
+  IncidentAssignmentState,
+  IncidentDueState,
   IncidentResponse,
   IncidentTimelineItem,
   IncidentSeverity,
@@ -35,6 +38,8 @@ import type { SavedViewResponse } from "../types/savedView";
 
 const SEVERITY_OPTIONS: IncidentSeverity[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUS_OPTIONS: IncidentStatus[] = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const ASSIGNMENT_STATE_OPTIONS: IncidentAssignmentState[] = ["ASSIGNED", "UNASSIGNED"];
+const DUE_STATE_OPTIONS: IncidentDueState[] = ["OVERDUE", "DUE_SOON", "NO_SLA"];
 const INCIDENT_SORT_OPTIONS = [
   { label: "Created", value: "createdAt" },
   { label: "Title", value: "title" },
@@ -107,6 +112,7 @@ const getDueStatus = (incident: IncidentResponse) => {
 };
 
 function IncidentsPage() {
+  const [searchParams] = useSearchParams();
   const [incidents, setIncidents] = useState<IncidentResponse[]>([]);
   const [createForm, setCreateForm] = useState<CreateIncidentRequest>(emptyCreateForm);
   const [selectedIncident, setSelectedIncident] = useState<IncidentResponse | null>(null);
@@ -119,9 +125,19 @@ function IncidentsPage() {
   const [assignmentUpdatingId, setAssignmentUpdatingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
-  const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
-  const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
-  const [assignedToFilter, setAssignedToFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">(
+    (searchParams.get("status") as IncidentStatus | null) ?? ""
+  );
+  const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">(
+    (searchParams.get("severity") as IncidentSeverity | null) ?? ""
+  );
+  const [assignedToFilter, setAssignedToFilter] = useState(searchParams.get("assignedToEmail") ?? "");
+  const [assignmentStateFilter, setAssignmentStateFilter] = useState<IncidentAssignmentState | "">(
+    (searchParams.get("assignmentState") as IncidentAssignmentState | null) ?? ""
+  );
+  const [dueStateFilter, setDueStateFilter] = useState<IncidentDueState | "">(
+    (searchParams.get("dueState") as IncidentDueState | null) ?? ""
+  );
   const [queryFilter, setQueryFilter] = useState("");
   const [createdFromFilter, setCreatedFromFilter] = useState("");
   const [createdToFilter, setCreatedToFilter] = useState("");
@@ -188,6 +204,8 @@ function IncidentsPage() {
         status: statusFilter,
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
+        assignmentState: assignmentStateFilter,
+        dueState: dueStateFilter,
         query: queryFilter,
         createdFrom: createdFromFilter,
         createdTo: createdToFilter,
@@ -216,6 +234,8 @@ function IncidentsPage() {
       status: statusFilter,
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
+        assignmentState: assignmentStateFilter,
+        dueState: dueStateFilter,
         query: queryFilter,
         createdFrom: createdFromFilter,
         createdTo: createdToFilter,
@@ -244,6 +264,8 @@ function IncidentsPage() {
     statusFilter,
     severityFilter,
     assignedToFilter,
+    assignmentStateFilter,
+    dueStateFilter,
     queryFilter,
     createdFromFilter,
     createdToFilter,
@@ -509,6 +531,8 @@ function IncidentsPage() {
       statusFilter,
       severityFilter,
       assignedToFilter,
+      assignmentStateFilter,
+      dueStateFilter,
       queryFilter,
       createdFromFilter,
       createdToFilter,
@@ -549,6 +573,8 @@ function IncidentsPage() {
       setStatusFilter((filters.statusFilter as IncidentStatus | "") ?? "");
       setSeverityFilter((filters.severityFilter as IncidentSeverity | "") ?? "");
       setAssignedToFilter(String(filters.assignedToFilter ?? ""));
+      setAssignmentStateFilter((filters.assignmentStateFilter as IncidentAssignmentState | "") ?? "");
+      setDueStateFilter((filters.dueStateFilter as IncidentDueState | "") ?? "");
       setQueryFilter(String(filters.queryFilter ?? ""));
       setCreatedFromFilter(String(filters.createdFromFilter ?? ""));
       setCreatedToFilter(String(filters.createdToFilter ?? ""));
@@ -584,6 +610,8 @@ function IncidentsPage() {
         status: statusFilter,
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
+        assignmentState: assignmentStateFilter,
+        dueState: dueStateFilter,
         query: queryFilter,
       });
       const downloadUrl = URL.createObjectURL(csvBlob);
@@ -694,6 +722,8 @@ function IncidentsPage() {
             setStatusFilter("");
             setSeverityFilter("");
             setAssignedToFilter("");
+            setAssignmentStateFilter("");
+            setDueStateFilter("");
             setCreatedFromFilter("");
             setCreatedToFilter("");
             setDueFromFilter("");
@@ -705,6 +735,8 @@ function IncidentsPage() {
             !statusFilter &&
             !severityFilter &&
             !assignedToFilter &&
+            !assignmentStateFilter &&
+            !dueStateFilter &&
             !createdFromFilter &&
             !createdToFilter &&
             !dueFromFilter &&
@@ -733,15 +765,52 @@ function IncidentsPage() {
           className="btn-secondary"
           onClick={() => {
             setAssignedToFilter(currentUser?.email ?? "");
+            setAssignmentStateFilter("");
             setPage(0);
           }}
           disabled={!currentUser?.email}
         >
           Mine
         </button>
+
+        <div className="filter-group">
+          <label>Assignment</label>
+          <select
+            value={assignmentStateFilter}
+            onChange={(event) => {
+              setAssignmentStateFilter(event.target.value as IncidentAssignmentState | "");
+              setPage(0);
+            }}
+          >
+            <option value="">Any assignment</option>
+            {ASSIGNMENT_STATE_OPTIONS.map((assignmentState) => (
+              <option key={assignmentState} value={assignmentState}>
+                {assignmentState === "ASSIGNED" ? "Assigned" : "Unassigned"}
+              </option>
+            ))}
+          </select>
+        </div>
       </section>
 
       <section className="filter-bar date-filter-bar">
+        <div className="filter-group">
+          <label>SLA State</label>
+          <select
+            value={dueStateFilter}
+            onChange={(event) => {
+              setDueStateFilter(event.target.value as IncidentDueState | "");
+              setPage(0);
+            }}
+          >
+            <option value="">Any SLA state</option>
+            {DUE_STATE_OPTIONS.map((dueState) => (
+              <option key={dueState} value={dueState}>
+                {dueState.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="filter-group">
           <label>Created From</label>
           <input

@@ -5,6 +5,8 @@ import type {
   BulkIncidentStatusUpdateRequest,
   CreateIncidentRequest,
   CreateIncidentNoteRequest,
+  IncidentAssignmentState,
+  IncidentDueState,
   IncidentNote,
   IncidentResponse,
   IncidentSeverity,
@@ -21,6 +23,8 @@ export interface IncidentFilters extends PaginationParams {
   status?: IncidentStatus | "";
   severity?: IncidentSeverity | "";
   assignedToEmail?: string;
+  assignmentState?: IncidentAssignmentState | "";
+  dueState?: IncidentDueState | "";
   query?: string;
   createdFrom?: string;
   createdTo?: string;
@@ -61,6 +65,8 @@ export const getAllIncidents = async (
       status: filters.status || undefined,
       severity: filters.severity || undefined,
       assignedToEmail: filters.assignedToEmail?.trim() || undefined,
+      assignmentState: filters.assignmentState || undefined,
+      dueState: filters.dueState || undefined,
       q: filters.query?.trim() || undefined,
       createdFrom: filters.createdFrom || undefined,
       createdTo: filters.createdTo || undefined,
@@ -85,6 +91,8 @@ export const exportIncidentsCsv = async (
       status: filters.status || undefined,
       severity: filters.severity || undefined,
       assignedToEmail: filters.assignedToEmail?.trim() || undefined,
+      assignmentState: filters.assignmentState || undefined,
+      dueState: filters.dueState || undefined,
       q: filters.query?.trim() || undefined,
       createdFrom: filters.createdFrom || undefined,
       createdTo: filters.createdTo || undefined,

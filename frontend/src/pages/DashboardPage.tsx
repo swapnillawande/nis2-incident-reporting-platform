@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type Highcharts from "highcharts";
 import DashboardChart from "../components/DashboardChart";
 import { getDashboardSummary, getRecentActiveIncidents } from "../api/dashboardApi";
@@ -17,6 +18,7 @@ const formatDateTime = (dateTime?: string | null) => {
 };
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [recentIncidents, setRecentIncidents] = useState<IncidentResponse[]>([]);
@@ -54,46 +56,70 @@ function DashboardPage() {
     (summary?.openIncidents ?? 0) + (summary?.inProgressIncidents ?? 0);
   const closedOrResolved =
     (summary?.resolvedIncidents ?? 0) + (summary?.closedIncidents ?? 0);
+  const openIncidentView = useCallback((filters: Record<string, string>) => {
+    const params = new URLSearchParams(filters);
+
+    navigate(`/incidents?${params.toString()}`);
+  }, [navigate]);
+  const buildPointFilterClick = useCallback(
+    (filterName: string, filterValues: string[]) =>
+      function (this: Highcharts.Point) {
+        const filterValue = filterValues[this.index];
+
+        if (filterValue) {
+          openIncidentView({ [filterName]: filterValue });
+        }
+      },
+    [openIncidentView]
+  );
   const dashboardCards = [
     {
       label: "Total Users",
       value: summary?.totalUsers,
       tone: "default",
+      onClick: () => navigate("/users"),
     },
     {
       label: "Total Incidents",
       value: summary?.totalIncidents,
       tone: "default",
+      onClick: () => navigate("/incidents"),
     },
     {
       label: "Audit Events",
       value: summary?.totalAuditLogs,
       tone: "neutral",
+      onClick: () => navigate("/audit-logs"),
     },
     {
       label: "Active Work",
       value: summary ? activeIncidents : undefined,
       tone: "info",
+      onClick: () => openIncidentView({ status: "OPEN" }),
     },
     {
       label: "Overdue SLA",
       value: summary?.overdueIncidents,
       tone: "danger",
+      onClick: () => openIncidentView({ dueState: "OVERDUE" }),
     },
     {
       label: "Due Within 24h",
       value: summary?.dueSoonIncidents,
       tone: "warning",
+      onClick: () => openIncidentView({ dueState: "DUE_SOON" }),
     },
     {
       label: "No SLA Set",
       value: summary?.unscheduledActiveIncidents,
       tone: "neutral",
+      onClick: () => openIncidentView({ dueState: "NO_SLA" }),
     },
     {
       label: "Closed / Resolved",
       value: summary ? closedOrResolved : undefined,
       tone: "success",
+      onClick: () => openIncidentView({ status: "RESOLVED" }),
     },
   ];
   const chartTextColor = "#334155";
@@ -197,6 +223,15 @@ function DashboardPage() {
     },
     legend: { enabled: false },
     tooltip: { pointFormat: "<b>{point.y}</b> incidents" },
+    plotOptions: {
+      series: {
+        point: {
+          events: {
+            click: buildPointFilterClick("status", ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]),
+          },
+        },
+      },
+    },
     series: [
       {
         type: "column",
@@ -212,7 +247,7 @@ function DashboardPage() {
       },
     ],
     lang: { noData: emptyChartLabel },
-  }), [summary, emptyChartLabel]);
+  }), [summary, emptyChartLabel, buildPointFilterClick]);
   const slaExposureChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "bar", height: 300 },
     colors: ["#dc2626", "#f59e0b", "#64748b"],
@@ -230,6 +265,15 @@ function DashboardPage() {
     },
     legend: { enabled: false },
     tooltip: { pointFormat: "<b>{point.y}</b> incidents" },
+    plotOptions: {
+      series: {
+        point: {
+          events: {
+            click: buildPointFilterClick("dueState", ["OVERDUE", "DUE_SOON", "NO_SLA"]),
+          },
+        },
+      },
+    },
     series: [
       {
         type: "bar",
@@ -244,12 +288,19 @@ function DashboardPage() {
       },
     ],
     lang: { noData: emptyChartLabel },
-  }), [summary, emptyChartLabel]);
+  }), [summary, emptyChartLabel, buildPointFilterClick]);
   const severityChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "pie", height: 300 },
     colors: ["#38bdf8", "#f59e0b", "#f97316", "#dc2626"],
     tooltip: { pointFormat: "<b>{point.y}</b> incidents ({point.percentage:.0f}%)" },
     plotOptions: {
+      series: {
+        point: {
+          events: {
+            click: buildPointFilterClick("severity", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+          },
+        },
+      },
       pie: {
         innerSize: "55%",
         dataLabels: {
@@ -276,12 +327,19 @@ function DashboardPage() {
       },
     ],
     lang: { noData: emptyChartLabel },
-  }), [summary, emptyChartLabel]);
+  }), [summary, emptyChartLabel, buildPointFilterClick]);
   const assignmentCoverageChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "pie", height: 300 },
     colors: ["#10b981", "#dc2626"],
     tooltip: { pointFormat: "<b>{point.y}</b> active incidents ({point.percentage:.0f}%)" },
     plotOptions: {
+      series: {
+        point: {
+          events: {
+            click: buildPointFilterClick("assignmentState", ["ASSIGNED", "UNASSIGNED"]),
+          },
+        },
+      },
       pie: {
         innerSize: "64%",
         dataLabels: {
@@ -306,7 +364,7 @@ function DashboardPage() {
       },
     ],
     lang: { noData: emptyChartLabel },
-  }), [summary, emptyChartLabel]);
+  }), [summary, emptyChartLabel, buildPointFilterClick]);
   const userStatusChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "pie", height: 300 },
     colors: ["#10b981", "#64748b", "#dc2626"],
@@ -399,10 +457,15 @@ function DashboardPage() {
 
       <div className="dashboard-grid">
         {dashboardCards.map((card) => (
-          <div className={`dashboard-card dashboard-card-${card.tone}`} key={card.label}>
+          <button
+            className={`dashboard-card dashboard-card-${card.tone}`}
+            key={card.label}
+            onClick={card.onClick}
+            type="button"
+          >
             <span>{card.label}</span>
             <strong>{card.value ?? "--"}</strong>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -494,7 +557,12 @@ function DashboardPage() {
         ) : (
           <div className="recent-incident-list">
             {recentIncidents.map((incident) => (
-              <article className="recent-incident-item" key={incident.id}>
+              <button
+                className="recent-incident-item"
+                key={incident.id}
+                onClick={() => openIncidentView({ q: incident.title })}
+                type="button"
+              >
                 <div>
                   <strong>{incident.title}</strong>
                   <span>{incident.description}</span>
@@ -508,7 +576,7 @@ function DashboardPage() {
                   </span>
                   <small>SLA: {formatDateTime(incident.dueAt)}</small>
                 </div>
-              </article>
+              </button>
             ))}
           </div>
         )}

@@ -339,6 +339,10 @@ button:disabled {
 }
 
 .dashboard-card {
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
   padding: 24px;
   border-radius: 22px;
   background: #ffffff;
@@ -479,6 +483,10 @@ button:disabled {
 }
 
 .recent-incident-item {
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;

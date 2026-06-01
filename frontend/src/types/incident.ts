@@ -2,6 +2,10 @@ export type IncidentSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type IncidentStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 
+export type IncidentAssignmentState = "ASSIGNED" | "UNASSIGNED";
+
+export type IncidentDueState = "OVERDUE" | "DUE_SOON" | "NO_SLA";
+
 export interface IncidentResponse {
   id: number;
   title: string;
