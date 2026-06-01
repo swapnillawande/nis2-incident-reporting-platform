@@ -560,6 +560,18 @@ button:disabled {
 
 .audit-table { min-width: 960px; }
 
+.select-column {
+  width: 44px;
+  min-width: 44px;
+}
+
+.table-checkbox {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--primary);
+}
+
 .data-table th, .data-table td {
   padding: 16px 14px;
   border-bottom: 1px solid var(--border);
@@ -704,6 +716,42 @@ button:disabled {
 .incident-assignee-bar {
   grid-template-columns: minmax(240px, 1fr) auto;
   margin-top: 14px;
+}
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+:root[data-theme="dark"] .bulk-action-bar {
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.bulk-action-count {
+  color: var(--text-main);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.bulk-action-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.bulk-action-controls select {
+  width: 190px;
+  height: 44px;
+  border-radius: 14px;
 }
 
 .incident-form { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; }
@@ -872,6 +920,9 @@ button:disabled {
   .dashboard-hero { padding: 28px 22px; }
   .page-header, .table-panel, .modal-panel { padding: 22px; border-radius: 22px; }
   .form-grid, .filter-bar, .incident-form, .role-list { grid-template-columns: 1fr; }
+  .bulk-action-bar { align-items: stretch; flex-direction: column; }
+  .bulk-action-controls { justify-content: stretch; }
+  .bulk-action-controls select, .bulk-action-controls button { width: 100%; }
   .recent-incident-item { grid-template-columns: 1fr; align-items: start; }
   .recent-incident-meta { justify-content: flex-start; max-width: none; }
   .recent-incident-meta small { text-align: left; }

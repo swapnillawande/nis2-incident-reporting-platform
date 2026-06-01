@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getAuthHeader } from "./userApi";
 import type {
+  BulkIncidentStatusUpdateRequest,
   CreateIncidentRequest,
   CreateIncidentNoteRequest,
   IncidentNote,
@@ -98,6 +99,16 @@ export const updateIncident = async (
       headers: getAuthHeader(),
     }
   );
+
+  return response.data;
+};
+
+export const bulkUpdateIncidentStatus = async (
+  data: BulkIncidentStatusUpdateRequest
+): Promise<IncidentResponse[]> => {
+  const response = await axios.put(`${API_BASE_URL}/incidents/bulk-status`, data, {
+    headers: getAuthHeader(),
+  });
 
   return response.data;
 };

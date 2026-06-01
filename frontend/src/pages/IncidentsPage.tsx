@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
+  bulkUpdateIncidentStatus,
   createIncident,
   deleteIncident,
   exportIncidentsCsv,
@@ -79,6 +80,7 @@ function IncidentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
@@ -89,6 +91,10 @@ function IncidentsPage() {
   const [newNote, setNewNote] = useState("");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [selectedIncidentIds, setSelectedIncidentIds] = useState<Set<number>>(
+    () => new Set()
+  );
+  const [bulkStatus, setBulkStatus] = useState<IncidentStatus>("IN_PROGRESS");
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -98,6 +104,15 @@ function IncidentsPage() {
   const canDelete = currentUser?.roles?.some((role: string) =>
     ["ADMIN", "SECURITY_ANALYST"].includes(role)
   );
+  const visibleIncidentIds = useMemo(
+    () => incidents.map((incident) => incident.id),
+    [incidents]
+  );
+  const selectedVisibleCount = visibleIncidentIds.filter((incidentId) =>
+    selectedIncidentIds.has(incidentId)
+  ).length;
+  const allVisibleSelected =
+    visibleIncidentIds.length > 0 && selectedVisibleCount === visibleIncidentIds.length;
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -117,6 +132,7 @@ function IncidentsPage() {
         query: queryFilter,
       });
       setIncidents(response);
+      setSelectedIncidentIds(new Set());
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
     } finally {
@@ -133,6 +149,7 @@ function IncidentsPage() {
     })
       .then((response) => {
         setIncidents(response);
+        setSelectedIncidentIds(new Set());
       })
       .catch((error: unknown) => {
         showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
@@ -263,6 +280,64 @@ function IncidentsPage() {
     }
   };
 
+  const toggleIncidentSelection = (incidentId: number) => {
+    setSelectedIncidentIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+
+      if (nextIds.has(incidentId)) {
+        nextIds.delete(incidentId);
+      } else {
+        nextIds.add(incidentId);
+      }
+
+      return nextIds;
+    });
+  };
+
+  const toggleAllVisibleIncidents = () => {
+    setSelectedIncidentIds((currentIds) => {
+      if (allVisibleSelected) {
+        return new Set(
+          Array.from(currentIds).filter((incidentId) => !visibleIncidentIds.includes(incidentId))
+        );
+      }
+
+      return new Set([...Array.from(currentIds), ...visibleIncidentIds]);
+    });
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    const incidentIds = Array.from(selectedIncidentIds);
+
+    if (incidentIds.length === 0) {
+      return;
+    }
+
+    setIsBulkUpdating(true);
+
+    try {
+      const updatedIncidents = await bulkUpdateIncidentStatus({
+        incidentIds,
+        status: bulkStatus,
+      });
+      const updatedIncidentMap = new Map(
+        updatedIncidents.map((incident) => [incident.id, incident])
+      );
+
+      setIncidents((currentIncidents) =>
+        currentIncidents.map((incident) =>
+          updatedIncidentMap.get(incident.id) ?? incident
+        )
+      );
+      setSelectedIncidentIds(new Set());
+      showMessage(`${updatedIncidents.length} incidents updated to ${bulkStatus.replace("_", " ")}`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to update selected incidents"), "error");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   const handleExportCsv = async () => {
     setIsExporting(true);
 
@@ -389,6 +464,44 @@ function IncidentsPage() {
           Mine
         </button>
       </section>
+
+      <section className="bulk-action-bar">
+        <div>
+          <span className="bulk-action-count">{selectedIncidentIds.size}</span>
+          <span className="text-muted"> selected for bulk triage</span>
+        </div>
+
+        <div className="bulk-action-controls">
+          <select
+            value={bulkStatus}
+            onChange={(event) => setBulkStatus(event.target.value as IncidentStatus)}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+
+          <button
+            className="btn-secondary"
+            onClick={handleBulkStatusUpdate}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            {isBulkUpdating ? "Updating..." : "Update Status"}
+          </button>
+
+          <button
+            className="btn-secondary"
+            onClick={() => setSelectedIncidentIds(new Set())}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            Clear
+          </button>
+        </div>
+      </section>
+
       <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50 dark:!from-slate-900 dark:!via-slate-900 dark:!to-slate-800 dark:!border-slate-700">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -486,6 +599,15 @@ function IncidentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th className="select-column">
+                    <input
+                      aria-label="Select all visible incidents"
+                      checked={allVisibleSelected}
+                      className="table-checkbox"
+                      onChange={toggleAllVisibleIncidents}
+                      type="checkbox"
+                    />
+                  </th>
                   <th>Title</th>
                   <th>Severity</th>
                   <th>Status</th>
@@ -499,6 +621,15 @@ function IncidentsPage() {
               <tbody>
                 {incidents.map((incident) => (
                   <tr key={incident.id}>
+                    <td className="select-column">
+                      <input
+                        aria-label={`Select ${incident.title}`}
+                        checked={selectedIncidentIds.has(incident.id)}
+                        className="table-checkbox"
+                        onChange={() => toggleIncidentSelection(incident.id)}
+                        type="checkbox"
+                      />
+                    </td>
                     <td>
                       <strong>{incident.title}</strong>
                       <span className="table-description">{incident.description}</span>

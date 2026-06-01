@@ -33,6 +33,11 @@ export interface UpdateIncidentRequest {
   clearDueAt?: boolean;
 }
 
+export interface BulkIncidentStatusUpdateRequest {
+  incidentIds: number[];
+  status: IncidentStatus;
+}
+
 export interface IncidentNote {
   id: number;
   incidentId: number;
