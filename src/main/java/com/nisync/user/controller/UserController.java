@@ -2,6 +2,9 @@ package com.nisync.user.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -115,6 +118,29 @@ public class UserController {
         logger.info("GET /users called. status: {}, role: {}, query: {}", status, role, query);
 
         return userService.getAllUsers(status, role, query);
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> exportUsers(
+            @RequestParam(name = "status", required = false) UserStatus status,
+            @RequestParam(name = "role", required = false) RoleName role,
+            @RequestParam(name = "q", required = false) String query,
+            Authentication authentication) {
+        logger.info(
+                "GET /users/export called by {}. status: {}, role: {}, query: {}",
+                authentication.getName(),
+                status,
+                role,
+                query
+        );
+
+        String csv = userService.exportUsersCsv(status, role, query, authentication.getName());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=users-export.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
     }
 
     @GetMapping("/{userId}")

@@ -1,8 +1,12 @@
 package com.nisync.user.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -162,6 +166,39 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
+	public String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail) {
+		logger.info("Exporting users to CSV. status: {}, role: {}, query: {}, actor: {}", status, role, query, actorEmail);
+
+		List<AppUser> users = userRepository.findAll(
+				buildUserSpecification(status, role, query),
+				Sort.by(Sort.Direction.DESC, "createdAt")
+		);
+
+		StringBuilder csv = new StringBuilder();
+		csv.append("ID,Full Name,Email,Status,Roles,Created At,Updated At\n");
+
+		users.forEach(user -> csv.append(toCsvRow(Arrays.asList(
+				user.getId(),
+				user.getFullName(),
+				user.getEmail(),
+				user.getStatus(),
+				formatRoles(user.getRoles()),
+				user.getCreatedAt(),
+				user.getUpdatedAt()
+		))));
+
+		auditLogService.record(
+				"USERS_EXPORTED",
+				"USER",
+				null,
+				actorEmail,
+				"Users exported to CSV. Count: " + users.size()
+		);
+
+		return csv.toString();
+	}
+
+	@Override
 	public UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail) {
 		logger.info("Updating user by id: {}", userId);
 
@@ -296,6 +333,45 @@ public class UserServiceImpl implements UserService{
 		logger.info("User saved successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
 
 		return UserMapperDto.toResponse(savedUser);
+	}
+
+	private String toCsvRow(List<Object> values) {
+		return values.stream()
+				.map(this::escapeCsvValue)
+				.collect(Collectors.joining(",")) + "\n";
+	}
+
+	private String escapeCsvValue(Object value) {
+		String text = Objects.toString(formatCsvValue(value), "");
+		boolean needsQuotes = text.contains(",")
+				|| text.contains("\"")
+				|| text.contains("\n")
+				|| text.contains("\r");
+
+		if (!needsQuotes) {
+			return text;
+		}
+
+		return "\"" + text.replace("\"", "\"\"") + "\"";
+	}
+
+	private Object formatCsvValue(Object value) {
+		if (value instanceof LocalDateTime dateTime) {
+			return dateTime.toString();
+		}
+
+		return value;
+	}
+
+	private String formatRoles(Set<RoleName> roles) {
+		if (roles == null || roles.isEmpty()) {
+			return "";
+		}
+
+		return roles.stream()
+				.map(RoleName::name)
+				.sorted()
+				.collect(Collectors.joining(";"));
 	}
 
 }

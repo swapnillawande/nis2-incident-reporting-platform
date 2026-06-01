@@ -22,6 +22,8 @@ public interface UserService {
     UserResponseDto getUserById(Long userId);
     
     List<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query);
+
+    String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail);
     
     UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail);
     

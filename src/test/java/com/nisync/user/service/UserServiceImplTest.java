@@ -184,6 +184,33 @@ public class UserServiceImplTest {
     }
 
     @Test
+    void shouldExportUsersCsvSuccessfully() {
+        AppUser user = buildUser(1L, "Admin, \"Lead\"", "admin@test.com");
+        user.setRoles(Set.of(RoleName.ADMIN, RoleName.AUDITOR));
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 15, 10, 30));
+        user.setUpdatedAt(LocalDateTime.of(2026, 1, 16, 11, 45));
+
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(user));
+
+        String csv = userService.exportUsersCsv(
+                UserStatus.ACTIVE,
+                RoleName.ADMIN,
+                "admin",
+                "admin@nis2.com"
+        );
+
+        assertTrue(csv.startsWith("ID,Full Name,Email,Status,Roles,Created At,Updated At"));
+        assertTrue(csv.contains("1,\"Admin, \"\"Lead\"\"\",admin@test.com,ACTIVE,ADMIN;AUDITOR,2026-01-15T10:30,2026-01-16T11:45"));
+        verify(auditLogService).record(
+                eq("USERS_EXPORTED"),
+                eq("USER"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Users exported to CSV. Count: 1")
+        );
+    }
+
+    @Test
     void shouldUpdateUserByIdSuccessfully() {
         AppUser user = buildUser(1L, "Old Name", "old@test.com");
         UserResponseDto updateRequest = new UserResponseDto();
