@@ -216,6 +216,8 @@ public class UserServiceImplTest {
                 UserStatus.ACTIVE,
                 RoleName.ADMIN,
                 "admin",
+                LocalDateTime.of(2026, 1, 1, 0, 0),
+                LocalDateTime.of(2026, 1, 31, 23, 59),
                 "admin@nis2.com"
         );
 

@@ -65,9 +65,14 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public String exportAuditLogsCsv(String action, String resourceType, String query) {
+    public String exportAuditLogsCsv(
+            String action,
+            String resourceType,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo) {
         List<AuditLog> auditLogs = auditLogRepository.findAll(
-                buildAuditLogSpecification(action, resourceType, query, null, null),
+                buildAuditLogSpecification(action, resourceType, query, createdFrom, createdTo),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 

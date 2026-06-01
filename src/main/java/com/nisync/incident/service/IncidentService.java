@@ -33,6 +33,10 @@ public interface IncidentService {
             IncidentSeverity severity,
             String assignedToEmail,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
             String actorEmail);
 
     IncidentResponseDto getIncidentById(Long incidentId);

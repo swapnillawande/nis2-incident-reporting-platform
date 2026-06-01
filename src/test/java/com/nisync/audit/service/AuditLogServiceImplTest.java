@@ -137,7 +137,13 @@ class AuditLogServiceImplTest {
         when(auditLogRepository.findAll(anyAuditLogSpecification(), anyCreatedAtDescSort()))
                 .thenReturn(List.of(auditLog));
 
-        String csv = auditLogService.exportAuditLogsCsv("INCIDENTS_EXPORTED", "INCIDENT", "exported");
+        String csv = auditLogService.exportAuditLogsCsv(
+                "INCIDENTS_EXPORTED",
+                "INCIDENT",
+                "exported",
+                LocalDateTime.of(2026, 6, 1, 0, 0),
+                LocalDateTime.of(2026, 6, 1, 23, 59)
+        );
         String[] lines = csv.split("\\n");
 
         assertEquals("ID,Action,Resource Type,Resource ID,Actor Email,Details,Created At", lines[0]);

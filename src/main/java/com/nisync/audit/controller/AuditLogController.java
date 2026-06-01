@@ -57,9 +57,13 @@ public class AuditLogController {
     public ResponseEntity<String> exportAuditLogs(
             @RequestParam(name = "action", required = false) String action,
             @RequestParam(name = "resourceType", required = false) String resourceType,
-            @RequestParam(name = "q", required = false) String query) {
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo) {
 
-        String csv = auditLogService.exportAuditLogsCsv(action, resourceType, query);
+        String csv = auditLogService.exportAuditLogsCsv(action, resourceType, query, createdFrom, createdTo);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=audit-logs-export.csv")

@@ -34,7 +34,13 @@ public interface UserService {
             String sortBy,
             String sortDir);
 
-    String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail);
+    String exportUsersCsv(
+            UserStatus status,
+            RoleName role,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            String actorEmail);
     
     UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail);
     

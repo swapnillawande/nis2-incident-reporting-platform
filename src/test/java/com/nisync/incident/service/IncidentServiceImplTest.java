@@ -263,6 +263,10 @@ class IncidentServiceImplTest {
                 IncidentSeverity.MEDIUM,
                 "analyst@nis2.com",
                 "csv",
+                LocalDateTime.of(2026, 5, 1, 0, 0),
+                LocalDateTime.of(2026, 6, 30, 23, 59),
+                LocalDateTime.of(2026, 6, 1, 0, 0),
+                LocalDateTime.of(2026, 6, 5, 23, 59),
                 "admin@nis2.com"
         );
 

@@ -120,15 +120,27 @@ public class IncidentController {
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
             @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @RequestParam(name = "dueFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueFrom,
+            @RequestParam(name = "dueTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueTo,
             Authentication authentication) {
 
         logger.info(
-                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}",
                 authentication.getName(),
                 status,
                 severity,
                 assignedToEmail,
-                query
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo
         );
 
         String csv = incidentService.exportIncidentsCsv(
@@ -136,6 +148,10 @@ public class IncidentController {
                 severity,
                 assignedToEmail,
                 query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
                 authentication.getName()
         );
 

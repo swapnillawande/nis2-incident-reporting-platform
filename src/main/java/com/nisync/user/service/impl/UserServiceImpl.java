@@ -189,11 +189,25 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail) {
-		logger.info("Exporting users to CSV. status: {}, role: {}, query: {}, actor: {}", status, role, query, actorEmail);
+	public String exportUsersCsv(
+			UserStatus status,
+			RoleName role,
+			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo,
+			String actorEmail) {
+		logger.info(
+				"Exporting users to CSV. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, actor: {}",
+				status,
+				role,
+				query,
+				createdFrom,
+				createdTo,
+				actorEmail
+		);
 
 		List<AppUser> users = userRepository.findAll(
-				buildUserSpecification(status, role, query, null, null),
+				buildUserSpecification(status, role, query, createdFrom, createdTo),
 				Sort.by(Sort.Direction.DESC, "createdAt")
 		);
 

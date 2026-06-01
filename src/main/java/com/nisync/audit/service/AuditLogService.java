@@ -21,5 +21,10 @@ public interface AuditLogService {
             String sortBy,
             String sortDir);
 
-    String exportAuditLogsCsv(String action, String resourceType, String query);
+    String exportAuditLogsCsv(
+            String action,
+            String resourceType,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo);
 }

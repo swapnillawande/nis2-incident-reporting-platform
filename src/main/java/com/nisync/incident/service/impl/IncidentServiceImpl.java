@@ -124,19 +124,27 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentSeverity severity,
             String assignedToEmail,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
             String actorEmail) {
 
         logger.info(
-                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, query: {}, actor: {}",
+                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, actor: {}",
                 status,
                 severity,
                 assignedToEmail,
                 query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
                 actorEmail
         );
 
         List<Incident> incidents = incidentRepository.findAll(
-                buildIncidentSpecification(status, severity, assignedToEmail, query, null, null, null, null),
+                buildIncidentSpecification(status, severity, assignedToEmail, query, createdFrom, createdTo, dueFrom, dueTo),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 

@@ -148,16 +148,22 @@ public class UserController {
             @RequestParam(name = "status", required = false) UserStatus status,
             @RequestParam(name = "role", required = false) RoleName role,
             @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
             Authentication authentication) {
         logger.info(
-                "GET /users/export called by {}. status: {}, role: {}, query: {}",
+                "GET /users/export called by {}. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}",
                 authentication.getName(),
                 status,
                 role,
-                query
+                query,
+                createdFrom,
+                createdTo
         );
 
-        String csv = userService.exportUsersCsv(status, role, query, authentication.getName());
+        String csv = userService.exportUsersCsv(status, role, query, createdFrom, createdTo, authentication.getName());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=users-export.csv")
