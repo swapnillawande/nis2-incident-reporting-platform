@@ -263,6 +263,60 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
+    public List<IncidentResponseDto> bulkAssignIncidents(
+            List<Long> incidentIds,
+            String assignedToEmail,
+            String actorEmail) {
+
+        String normalizedAssignedToEmail = normalizeEmail(assignedToEmail);
+        logger.info(
+                "Bulk assigning incidents. count: {}, assignedToEmail: {}, actor: {}",
+                incidentIds.size(),
+                normalizedAssignedToEmail,
+                actorEmail
+        );
+
+        List<Incident> incidents = findDistinctIncidentsOrThrow(incidentIds, "Bulk assignment");
+        incidents.forEach(incident -> incident.setAssignedToEmail(normalizedAssignedToEmail));
+
+        List<Incident> savedIncidents = saveIncidents(incidents);
+
+        auditLogService.record(
+                "INCIDENTS_BULK_ASSIGNED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents assigned to " + normalizedAssignedToEmail + ". Count: " + savedIncidents.size()
+        );
+
+        return savedIncidents.stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<IncidentResponseDto> bulkUnassignIncidents(List<Long> incidentIds, String actorEmail) {
+        logger.info("Bulk unassigning incidents. count: {}, actor: {}", incidentIds.size(), actorEmail);
+
+        List<Incident> incidents = findDistinctIncidentsOrThrow(incidentIds, "Bulk unassignment");
+        incidents.forEach(incident -> incident.setAssignedToEmail(null));
+
+        List<Incident> savedIncidents = saveIncidents(incidents);
+
+        auditLogService.record(
+                "INCIDENTS_BULK_UNASSIGNED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents unassigned. Count: " + savedIncidents.size()
+        );
+
+        return savedIncidents.stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
+    }
+
+    @Override
     public List<IncidentResponseDto> bulkUpdateStatus(
             List<Long> incidentIds,
             IncidentStatus status,
@@ -270,27 +324,11 @@ public class IncidentServiceImpl implements IncidentService {
 
         logger.info("Bulk updating incident status. count: {}, status: {}, actor: {}", incidentIds.size(), status, actorEmail);
 
-        List<Long> distinctIncidentIds = incidentIds.stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-        List<Incident> incidents = incidentRepository.findAllById(distinctIncidentIds);
-        Set<Long> foundIncidentIds = incidents.stream()
-                .map(Incident::getId)
-                .collect(Collectors.toCollection(HashSet::new));
-        List<Long> missingIncidentIds = distinctIncidentIds.stream()
-                .filter(incidentId -> !foundIncidentIds.contains(incidentId))
-                .toList();
-
-        if (!missingIncidentIds.isEmpty()) {
-            logger.warn("Bulk status update failed. Missing incident ids: {}", missingIncidentIds);
-            throw new ResourceNotFoundException("Incidents not found with ids: " + missingIncidentIds);
-        }
+        List<Incident> incidents = findDistinctIncidentsOrThrow(incidentIds, "Bulk status update");
 
         incidents.forEach(incident -> incident.setStatus(status));
 
-        List<Incident> savedIncidents = new ArrayList<>();
-        incidentRepository.saveAll(incidents).forEach(savedIncidents::add);
+        List<Incident> savedIncidents = saveIncidents(incidents);
 
         auditLogService.record(
                 "INCIDENTS_BULK_STATUS_UPDATED",
@@ -335,6 +373,34 @@ public class IncidentServiceImpl implements IncidentService {
                     logger.warn("Incident not found with id: {}", incidentId);
                     return new ResourceNotFoundException("Incident not found with id: " + incidentId);
                 });
+    }
+
+    private List<Incident> findDistinctIncidentsOrThrow(List<Long> incidentIds, String operationName) {
+        List<Long> distinctIncidentIds = incidentIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<Incident> incidents = incidentRepository.findAllById(distinctIncidentIds);
+        Set<Long> foundIncidentIds = incidents.stream()
+                .map(Incident::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+        List<Long> missingIncidentIds = distinctIncidentIds.stream()
+                .filter(incidentId -> !foundIncidentIds.contains(incidentId))
+                .toList();
+
+        if (!missingIncidentIds.isEmpty()) {
+            logger.warn("{} failed. Missing incident ids: {}", operationName, missingIncidentIds);
+            throw new ResourceNotFoundException("Incidents not found with ids: " + missingIncidentIds);
+        }
+
+        return incidents;
+    }
+
+    private List<Incident> saveIncidents(List<Incident> incidents) {
+        List<Incident> savedIncidents = new ArrayList<>();
+        incidentRepository.saveAll(incidents).forEach(savedIncidents::add);
+
+        return savedIncidents;
     }
 
     private String normalizeEmail(String email) {

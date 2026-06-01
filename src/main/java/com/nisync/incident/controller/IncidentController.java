@@ -2,6 +2,7 @@ package com.nisync.incident.controller;
 
 import com.nisync.common.response.PagedResponseDto;
 import com.nisync.incident.dto.AssignIncidentRequestDto;
+import com.nisync.incident.dto.BulkIncidentAssignmentRequestDto;
 import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -239,6 +240,42 @@ public class IncidentController {
         return incidentService.bulkUpdateStatus(
                 request.getIncidentIds(),
                 request.getStatus(),
+                authentication.getName()
+        );
+    }
+
+    @PutMapping("/bulk-assignment")
+    public List<IncidentResponseDto> bulkAssignIncidents(
+            @Valid @RequestBody BulkIncidentAssignmentRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "PUT /incidents/bulk-assignment called by {}. count: {}, assignedToEmail: {}",
+                authentication.getName(),
+                request.getIncidentIds().size(),
+                request.getAssignedToEmail()
+        );
+
+        return incidentService.bulkAssignIncidents(
+                request.getIncidentIds(),
+                request.getAssignedToEmail(),
+                authentication.getName()
+        );
+    }
+
+    @DeleteMapping("/bulk-assignment")
+    public List<IncidentResponseDto> bulkUnassignIncidents(
+            @Valid @RequestBody BulkIncidentAssignmentRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "DELETE /incidents/bulk-assignment called by {}. count: {}",
+                authentication.getName(),
+                request.getIncidentIds().size()
+        );
+
+        return incidentService.bulkUnassignIncidents(
+                request.getIncidentIds(),
                 authentication.getName()
         );
     }

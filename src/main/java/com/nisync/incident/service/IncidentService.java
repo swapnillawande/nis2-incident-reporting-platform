@@ -47,6 +47,10 @@ public interface IncidentService {
 
     IncidentResponseDto unassignIncident(Long incidentId, String actorEmail);
 
+    List<IncidentResponseDto> bulkAssignIncidents(List<Long> incidentIds, String assignedToEmail, String actorEmail);
+
+    List<IncidentResponseDto> bulkUnassignIncidents(List<Long> incidentIds, String actorEmail);
+
     List<IncidentResponseDto> bulkUpdateStatus(List<Long> incidentIds, IncidentStatus status, String actorEmail);
 
     IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail);

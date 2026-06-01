@@ -239,6 +239,57 @@ class IncidentServiceImplTest {
     }
 
     @Test
+    void shouldBulkAssignIncidentsSuccessfully() {
+        Incident firstIncident = buildIncident(1L, "First Incident");
+        Incident secondIncident = buildIncident(2L, "Second Incident");
+
+        when(incidentRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<IncidentResponseDto> response = incidentService.bulkAssignIncidents(
+                List.of(1L, 2L),
+                " lead@nis2.com ",
+                "admin@nis2.com"
+        );
+
+        assertEquals(2, response.size());
+        assertEquals("lead@nis2.com", response.get(0).getAssignedToEmail());
+        assertEquals("lead@nis2.com", response.get(1).getAssignedToEmail());
+        verify(auditLogService).record(
+                eq("INCIDENTS_BULK_ASSIGNED"),
+                eq("INCIDENT"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Incidents assigned to lead@nis2.com. Count: 2")
+        );
+    }
+
+    @Test
+    void shouldBulkUnassignIncidentsSuccessfully() {
+        Incident firstIncident = buildIncident(1L, "First Incident");
+        Incident secondIncident = buildIncident(2L, "Second Incident");
+
+        when(incidentRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<IncidentResponseDto> response = incidentService.bulkUnassignIncidents(
+                List.of(1L, 2L),
+                "admin@nis2.com"
+        );
+
+        assertEquals(2, response.size());
+        assertNull(response.get(0).getAssignedToEmail());
+        assertNull(response.get(1).getAssignedToEmail());
+        verify(auditLogService).record(
+                eq("INCIDENTS_BULK_UNASSIGNED"),
+                eq("INCIDENT"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Incidents unassigned. Count: 2")
+        );
+    }
+
+    @Test
     void shouldBulkUpdateIncidentStatusSuccessfully() {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");
