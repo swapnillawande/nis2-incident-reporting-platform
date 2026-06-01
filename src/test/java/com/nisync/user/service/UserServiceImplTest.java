@@ -161,7 +161,15 @@ public class UserServiceImplTest {
         when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescPageable()))
                 .thenReturn(new PageImpl<>(List.of(firstUser, secondUser)));
 
-        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(null, null, null, 0, 10);
+        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(
+                null,
+                null,
+                null,
+                0,
+                10,
+                "createdAt",
+                "desc"
+        );
 
         assertEquals(2, response.getContent().size());
         assertEquals("first@test.com", response.getContent().get(0).getEmail());
@@ -173,7 +181,7 @@ public class UserServiceImplTest {
         AppUser user = buildUser(1L, "Filtered User", "filtered@test.com");
         user.setRoles(Set.of(RoleName.AUDITOR));
 
-        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescPageable()))
+        when(userRepository.findAll(anyUserSpecification(), anyEmailAscPageable()))
                 .thenReturn(new PageImpl<>(List.of(user)));
 
         PagedResponseDto<UserResponseDto> response = userService.getAllUsers(
@@ -181,7 +189,9 @@ public class UserServiceImplTest {
                 RoleName.AUDITOR,
                 "filtered",
                 0,
-                10
+                10,
+                "email",
+                "asc"
         );
 
         assertEquals(1, response.getContent().size());
@@ -289,5 +299,10 @@ public class UserServiceImplTest {
     private Pageable anyCreatedAtDescPageable() {
         return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
                 && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyEmailAscPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("email") != null
+                && Sort.Direction.ASC.equals(pageable.getSort().getOrderFor("email").getDirection()));
     }
 }

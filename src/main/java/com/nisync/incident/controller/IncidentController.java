@@ -63,19 +63,23 @@ public class IncidentController {
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
 
         logger.info(
-                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}",
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
                 query,
                 page,
-                size
+                size,
+                sortBy,
+                sortDir
         );
 
-        return incidentService.getIncidents(status, severity, assignedToEmail, query, page, size);
+        return incidentService.getIncidents(status, severity, assignedToEmail, query, page, size, sortBy, sortDir);
     }
 
     @GetMapping("/export")

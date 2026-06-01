@@ -28,9 +28,11 @@ public class AuditLogController {
             @RequestParam(name = "resourceType", required = false) String resourceType,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
 
-        return auditLogService.getRecentAuditLogs(action, resourceType, query, page, size);
+        return auditLogService.getRecentAuditLogs(action, resourceType, query, page, size, sortBy, sortDir);
     }
 
     @GetMapping("/export")

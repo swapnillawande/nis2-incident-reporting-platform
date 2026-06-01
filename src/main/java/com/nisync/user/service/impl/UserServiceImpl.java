@@ -156,12 +156,28 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public PagedResponseDto<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query, int page, int size) {
-		logger.info("Fetching users. status: {}, role: {}, query: {}, page: {}, size: {}", status, role, query, page, size);
+	public PagedResponseDto<UserResponseDto> getAllUsers(
+			UserStatus status,
+			RoleName role,
+			String query,
+			int page,
+			int size,
+			String sortBy,
+			String sortDir) {
+		logger.info(
+				"Fetching users. status: {}, role: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+				status,
+				role,
+				query,
+				page,
+				size,
+				sortBy,
+				sortDir
+		);
 
 		Page<UserResponseDto> users = userRepository.findAll(
 				buildUserSpecification(status, role, query),
-				PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
+				PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
 		)
 				.map(UserMapperDto::toResponse);
 
@@ -312,6 +328,23 @@ public class UserServiceImpl implements UserService{
 		}
 
 		return Math.min(size, 100);
+	}
+
+	private Sort buildSort(String sortBy, String sortDir) {
+		String sortProperty = switch (normalizeSortKey(sortBy)) {
+			case "fullName" -> "fullName";
+			case "email" -> "email";
+			case "status" -> "status";
+			case "updatedAt" -> "updatedAt";
+			default -> "createdAt";
+		};
+		Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+		return Sort.by(direction, sortProperty);
+	}
+
+	private String normalizeSortKey(String sortBy) {
+		return sortBy == null ? "" : sortBy.trim();
 	}
 
 	private UserResponseDto createUserRecord(

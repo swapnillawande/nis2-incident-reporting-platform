@@ -89,7 +89,16 @@ class IncidentServiceImplTest {
         when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescPageable()))
                 .thenReturn(new PageImpl<>(List.of(firstIncident, secondIncident)));
 
-        PagedResponseDto<IncidentResponseDto> response = incidentService.getIncidents(null, null, null, null, 0, 10);
+        PagedResponseDto<IncidentResponseDto> response = incidentService.getIncidents(
+                null,
+                null,
+                null,
+                null,
+                0,
+                10,
+                "createdAt",
+                "desc"
+        );
 
         assertEquals(2, response.getContent().size());
         assertEquals("First Incident", response.getContent().get(0).getTitle());
@@ -102,7 +111,7 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.IN_PROGRESS);
         incident.setSeverity(IncidentSeverity.HIGH);
 
-        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescPageable()))
+        when(incidentRepository.findAll(anyIncidentSpecification(), anySeverityAscPageable()))
                 .thenReturn(new PageImpl<>(List.of(incident)));
 
         PagedResponseDto<IncidentResponseDto> response = incidentService.getIncidents(
@@ -111,7 +120,9 @@ class IncidentServiceImplTest {
                 "analyst@nis2.com",
                 "filtered",
                 0,
-                10
+                10,
+                "severity",
+                "asc"
         );
 
         assertEquals(1, response.getContent().size());
@@ -288,5 +299,10 @@ class IncidentServiceImplTest {
     private Pageable anyCreatedAtDescPageable() {
         return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
                 && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anySeverityAscPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("severity") != null
+                && Sort.Direction.ASC.equals(pageable.getSort().getOrderFor("severity").getDirection()));
     }
 }
