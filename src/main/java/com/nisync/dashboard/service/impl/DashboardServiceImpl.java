@@ -6,6 +6,8 @@ import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 import com.nisync.user.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,13 @@ public class DashboardServiceImpl implements DashboardService {
 
         return new DashboardSummaryDto(
                 userRepository.count(),
+                userRepository.countByStatus(UserStatus.ACTIVE),
+                userRepository.countByStatus(UserStatus.INACTIVE),
+                userRepository.countByStatus(UserStatus.SUSPENDED),
+                userRepository.countByRole(RoleName.ADMIN),
+                userRepository.countByRole(RoleName.SECURITY_ANALYST),
+                userRepository.countByRole(RoleName.COMPLIANCE_OFFICER),
+                userRepository.countByRole(RoleName.AUDITOR),
                 incidentRepository.count(),
                 openIncidents,
                 inProgressIncidents,
