@@ -1,6 +1,7 @@
 package com.nisync.incident.controller;
 
 import com.nisync.common.response.PagedResponseDto;
+import com.nisync.incident.dto.AssignIncidentRequestDto;
 import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -177,6 +178,50 @@ public class IncidentController {
         logger.info("PUT /incidents/{} called by {}", incidentId, authentication.getName());
 
         return incidentService.updateIncidentById(incidentId, request, authentication.getName());
+    }
+
+    @PutMapping("/{incidentId}/assignment")
+    public IncidentResponseDto assignIncident(
+            @PathVariable("incidentId") Long incidentId,
+            @Valid @RequestBody AssignIncidentRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "PUT /incidents/{}/assignment called by {}. assignedToEmail: {}",
+                incidentId,
+                authentication.getName(),
+                request.getAssignedToEmail()
+        );
+
+        return incidentService.assignIncident(
+                incidentId,
+                request.getAssignedToEmail(),
+                authentication.getName()
+        );
+    }
+
+    @PutMapping("/{incidentId}/assignment/me")
+    public IncidentResponseDto assignIncidentToMe(
+            @PathVariable("incidentId") Long incidentId,
+            Authentication authentication) {
+
+        logger.info("PUT /incidents/{}/assignment/me called by {}", incidentId, authentication.getName());
+
+        return incidentService.assignIncident(
+                incidentId,
+                authentication.getName(),
+                authentication.getName()
+        );
+    }
+
+    @DeleteMapping("/{incidentId}/assignment")
+    public IncidentResponseDto unassignIncident(
+            @PathVariable("incidentId") Long incidentId,
+            Authentication authentication) {
+
+        logger.info("DELETE /incidents/{}/assignment called by {}", incidentId, authentication.getName());
+
+        return incidentService.unassignIncident(incidentId, authentication.getName());
     }
 
     @PutMapping("/bulk-status")

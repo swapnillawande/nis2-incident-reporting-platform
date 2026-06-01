@@ -197,6 +197,48 @@ class IncidentServiceImplTest {
     }
 
     @Test
+    void shouldAssignIncidentSuccessfully() {
+        Incident incident = buildIncident(1L, "Assignment Incident");
+
+        when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
+        when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IncidentResponseDto response = incidentService.assignIncident(
+                1L,
+                " lead@nis2.com ",
+                "admin@nis2.com"
+        );
+
+        assertEquals("lead@nis2.com", response.getAssignedToEmail());
+        verify(auditLogService).record(
+                eq("INCIDENT_ASSIGNED"),
+                eq("INCIDENT"),
+                eq(1L),
+                eq("admin@nis2.com"),
+                eq("Incident assigned to lead@nis2.com: Assignment Incident")
+        );
+    }
+
+    @Test
+    void shouldUnassignIncidentSuccessfully() {
+        Incident incident = buildIncident(1L, "Unassignment Incident");
+
+        when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
+        when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IncidentResponseDto response = incidentService.unassignIncident(1L, "admin@nis2.com");
+
+        assertNull(response.getAssignedToEmail());
+        verify(auditLogService).record(
+                eq("INCIDENT_UNASSIGNED"),
+                eq("INCIDENT"),
+                eq(1L),
+                eq("admin@nis2.com"),
+                eq("Incident unassigned: Unassignment Incident")
+        );
+    }
+
+    @Test
     void shouldBulkUpdateIncidentStatusSuccessfully() {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");

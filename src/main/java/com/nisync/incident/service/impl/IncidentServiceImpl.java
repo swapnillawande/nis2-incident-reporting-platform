@@ -216,6 +216,53 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
+    public IncidentResponseDto assignIncident(Long incidentId, String assignedToEmail, String actorEmail) {
+        String normalizedAssignedToEmail = normalizeEmail(assignedToEmail);
+
+        logger.info(
+                "Assigning incident by id: {} to {} by {}",
+                incidentId,
+                normalizedAssignedToEmail,
+                actorEmail
+        );
+
+        Incident incident = findIncidentOrThrow(incidentId);
+        incident.setAssignedToEmail(normalizedAssignedToEmail);
+
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.record(
+                "INCIDENT_ASSIGNED",
+                "INCIDENT",
+                savedIncident.getId(),
+                actorEmail,
+                "Incident assigned to " + normalizedAssignedToEmail + ": " + savedIncident.getTitle()
+        );
+
+        return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
+    public IncidentResponseDto unassignIncident(Long incidentId, String actorEmail) {
+        logger.info("Unassigning incident by id: {} by {}", incidentId, actorEmail);
+
+        Incident incident = findIncidentOrThrow(incidentId);
+        incident.setAssignedToEmail(null);
+
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.record(
+                "INCIDENT_UNASSIGNED",
+                "INCIDENT",
+                savedIncident.getId(),
+                actorEmail,
+                "Incident unassigned: " + savedIncident.getTitle()
+        );
+
+        return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
     public List<IncidentResponseDto> bulkUpdateStatus(
             List<Long> incidentIds,
             IncidentStatus status,

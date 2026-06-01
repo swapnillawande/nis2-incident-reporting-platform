@@ -43,6 +43,10 @@ public interface IncidentService {
 
     IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail);
 
+    IncidentResponseDto assignIncident(Long incidentId, String assignedToEmail, String actorEmail);
+
+    IncidentResponseDto unassignIncident(Long incidentId, String actorEmail);
+
     List<IncidentResponseDto> bulkUpdateStatus(List<Long> incidentIds, IncidentStatus status, String actorEmail);
 
     IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail);
