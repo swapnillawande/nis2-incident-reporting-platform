@@ -160,15 +160,19 @@ public class UserServiceImpl implements UserService{
 			UserStatus status,
 			RoleName role,
 			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo,
 			int page,
 			int size,
 			String sortBy,
 			String sortDir) {
 		logger.info(
-				"Fetching users. status: {}, role: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+				"Fetching users. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
 				status,
 				role,
 				query,
+				createdFrom,
+				createdTo,
 				page,
 				size,
 				sortBy,
@@ -176,7 +180,7 @@ public class UserServiceImpl implements UserService{
 		);
 
 		Page<UserResponseDto> users = userRepository.findAll(
-				buildUserSpecification(status, role, query),
+				buildUserSpecification(status, role, query, createdFrom, createdTo),
 				PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
 		)
 				.map(UserMapperDto::toResponse);
@@ -189,7 +193,7 @@ public class UserServiceImpl implements UserService{
 		logger.info("Exporting users to CSV. status: {}, role: {}, query: {}, actor: {}", status, role, query, actorEmail);
 
 		List<AppUser> users = userRepository.findAll(
-				buildUserSpecification(status, role, query),
+				buildUserSpecification(status, role, query, null, null),
 				Sort.by(Sort.Direction.DESC, "createdAt")
 		);
 
@@ -295,7 +299,12 @@ public class UserServiceImpl implements UserService{
 		userRepository.deleteAll();
 	}
 
-	private Specification<AppUser> buildUserSpecification(UserStatus status, RoleName role, String query) {
+	private Specification<AppUser> buildUserSpecification(
+			UserStatus status,
+			RoleName role,
+			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo) {
 		return (root, criteriaQuery, criteriaBuilder) -> {
 			var predicate = criteriaBuilder.conjunction();
 
@@ -305,6 +314,20 @@ public class UserServiceImpl implements UserService{
 
 			if (role != null) {
 				predicate = criteriaBuilder.and(predicate, criteriaBuilder.isMember(role, root.get("roles")));
+			}
+
+			if (createdFrom != null) {
+				predicate = criteriaBuilder.and(
+						predicate,
+						criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom)
+				);
+			}
+
+			if (createdTo != null) {
+				predicate = criteriaBuilder.and(
+						predicate,
+						criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), createdTo)
+				);
 			}
 
 			if (query != null && !query.isBlank()) {

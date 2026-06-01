@@ -49,12 +49,14 @@ public class AuditLogServiceImpl implements AuditLogService {
             String action,
             String resourceType,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
             int page,
             int size,
             String sortBy,
             String sortDir) {
         Page<AuditLogResponseDto> auditLogs = auditLogRepository.findAll(
-                buildAuditLogSpecification(action, resourceType, query),
+                buildAuditLogSpecification(action, resourceType, query, createdFrom, createdTo),
                         PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
                 )
                 .map(AuditLogMapperDto::toResponse);
@@ -65,14 +67,19 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     public String exportAuditLogsCsv(String action, String resourceType, String query) {
         List<AuditLog> auditLogs = auditLogRepository.findAll(
-                buildAuditLogSpecification(action, resourceType, query),
+                buildAuditLogSpecification(action, resourceType, query, null, null),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
         return buildAuditLogsCsv(auditLogs);
     }
 
-    private Specification<AuditLog> buildAuditLogSpecification(String action, String resourceType, String query) {
+    private Specification<AuditLog> buildAuditLogSpecification(
+            String action,
+            String resourceType,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo) {
         return (root, criteriaQuery, criteriaBuilder) -> {
             var predicate = criteriaBuilder.conjunction();
 
@@ -87,6 +94,20 @@ public class AuditLogServiceImpl implements AuditLogService {
                 predicate = criteriaBuilder.and(
                         predicate,
                         criteriaBuilder.equal(root.get("resourceType"), resourceType.trim())
+                );
+            }
+
+            if (createdFrom != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom)
+                );
+            }
+
+            if (createdTo != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), createdTo)
                 );
             }
 

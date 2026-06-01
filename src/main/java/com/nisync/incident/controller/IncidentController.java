@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("incidents")
@@ -62,24 +64,49 @@ public class IncidentController {
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
             @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @RequestParam(name = "dueFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueFrom,
+            @RequestParam(name = "dueTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueTo,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
             @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
             @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
 
         logger.info(
-                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
                 query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
                 page,
                 size,
                 sortBy,
                 sortDir
         );
 
-        return incidentService.getIncidents(status, severity, assignedToEmail, query, page, size, sortBy, sortDir);
+        return incidentService.getIncidents(
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
     }
 
     @GetMapping("/export")

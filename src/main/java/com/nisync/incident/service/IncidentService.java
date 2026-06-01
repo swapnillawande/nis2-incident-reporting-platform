@@ -8,6 +8,7 @@ import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public interface IncidentService {
 
@@ -18,6 +19,10 @@ public interface IncidentService {
             IncidentSeverity severity,
             String assignedToEmail,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
             int page,
             int size,
             String sortBy,

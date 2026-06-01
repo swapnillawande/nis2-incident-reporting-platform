@@ -1,8 +1,10 @@
 package com.nisync.user.controller;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import com.nisync.common.response.PagedResponseDto;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -116,22 +118,28 @@ public class UserController {
             @RequestParam(name = "status", required = false) UserStatus status,
             @RequestParam(name = "role", required = false) RoleName role,
             @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
             @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
             @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
         logger.info(
-                "GET /users called. status: {}, role: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                "GET /users called. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 role,
                 query,
+                createdFrom,
+                createdTo,
                 page,
                 size,
                 sortBy,
                 sortDir
         );
 
-        return userService.getAllUsers(status, role, query, page, size, sortBy, sortDir);
+        return userService.getAllUsers(status, role, query, createdFrom, createdTo, page, size, sortBy, sortDir);
     }
 
     @GetMapping("/export")

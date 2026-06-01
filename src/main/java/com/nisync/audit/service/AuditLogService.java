@@ -4,6 +4,7 @@ import com.nisync.audit.dto.AuditLogResponseDto;
 import com.nisync.common.response.PagedResponseDto;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public interface AuditLogService {
 
@@ -13,6 +14,8 @@ public interface AuditLogService {
             String action,
             String resourceType,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
             int page,
             int size,
             String sortBy,

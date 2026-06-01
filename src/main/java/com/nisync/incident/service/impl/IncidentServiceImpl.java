@@ -76,16 +76,24 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentSeverity severity,
             String assignedToEmail,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
             int page,
             int size,
             String sortBy,
             String sortDir) {
         logger.info(
-                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
                 query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
                 page,
                 size,
                 sortBy,
@@ -93,7 +101,16 @@ public class IncidentServiceImpl implements IncidentService {
         );
 
         Page<IncidentResponseDto> incidents = incidentRepository.findAll(
-                        buildIncidentSpecification(status, severity, assignedToEmail, query),
+                        buildIncidentSpecification(
+                                status,
+                                severity,
+                                assignedToEmail,
+                                query,
+                                createdFrom,
+                                createdTo,
+                                dueFrom,
+                                dueTo
+                        ),
                         PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
                 )
                 .map(IncidentMapperDto::toResponse);
@@ -119,7 +136,7 @@ public class IncidentServiceImpl implements IncidentService {
         );
 
         List<Incident> incidents = incidentRepository.findAll(
-                buildIncidentSpecification(status, severity, assignedToEmail, query),
+                buildIncidentSpecification(status, severity, assignedToEmail, query, null, null, null, null),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
@@ -277,7 +294,11 @@ public class IncidentServiceImpl implements IncidentService {
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
-            String query) {
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo) {
 
         return (root, criteriaQuery, criteriaBuilder) -> {
             var predicate = criteriaBuilder.conjunction();
@@ -297,6 +318,34 @@ public class IncidentServiceImpl implements IncidentService {
                                 criteriaBuilder.lower(root.get("assignedToEmail")),
                                 assignedToEmail.trim().toLowerCase()
                         )
+                );
+            }
+
+            if (createdFrom != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom)
+                );
+            }
+
+            if (createdTo != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), createdTo)
+                );
+            }
+
+            if (dueFrom != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("dueAt"), dueFrom)
+                );
+            }
+
+            if (dueTo != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("dueAt"), dueTo)
                 );
             }
 

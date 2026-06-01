@@ -1,6 +1,7 @@
 package com.nisync.user.service;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import com.nisync.common.response.PagedResponseDto;
 import com.nisync.user.dto.AuthResponseDto;
@@ -26,6 +27,8 @@ public interface UserService {
             UserStatus status,
             RoleName role,
             String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
             int page,
             int size,
             String sortBy,
