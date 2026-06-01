@@ -12,7 +12,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class AuditLogServiceImpl implements AuditLogService {
@@ -49,6 +53,16 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .toList();
     }
 
+    @Override
+    public String exportAuditLogsCsv(String action, String resourceType, String query) {
+        List<AuditLog> auditLogs = auditLogRepository.findAll(
+                buildAuditLogSpecification(action, resourceType, query),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return buildAuditLogsCsv(auditLogs);
+    }
+
     private Specification<AuditLog> buildAuditLogSpecification(String action, String resourceType, String query) {
         return (root, criteriaQuery, criteriaBuilder) -> {
             var predicate = criteriaBuilder.conjunction();
@@ -80,5 +94,47 @@ public class AuditLogServiceImpl implements AuditLogService {
 
             return predicate;
         };
+    }
+
+    private String buildAuditLogsCsv(List<AuditLog> auditLogs) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("ID,Action,Resource Type,Resource ID,Actor Email,Details,Created At\n");
+
+        auditLogs.forEach(auditLog -> csv.append(toCsvRow(Arrays.asList(
+                auditLog.getId(),
+                auditLog.getAction(),
+                auditLog.getResourceType(),
+                auditLog.getResourceId(),
+                auditLog.getActorEmail(),
+                auditLog.getDetails(),
+                auditLog.getCreatedAt()
+        ))).append("\n"));
+
+        return csv.toString();
+    }
+
+    private String toCsvRow(List<Object> values) {
+        return values.stream()
+                .map(this::escapeCsvValue)
+                .collect(Collectors.joining(","));
+    }
+
+    private String escapeCsvValue(Object value) {
+        String text = Objects.toString(formatCsvValue(value), "");
+        boolean needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r");
+
+        if (!needsQuotes) {
+            return text;
+        }
+
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
+    private Object formatCsvValue(Object value) {
+        if (value instanceof LocalDateTime dateTime) {
+            return dateTime.toString();
+        }
+
+        return value;
     }
 }
