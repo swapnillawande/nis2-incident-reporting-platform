@@ -12,7 +12,13 @@ export interface DashboardSummary {
   inProgressIncidents: number;
   resolvedIncidents: number;
   closedIncidents: number;
+  lowSeverityIncidents: number;
+  mediumSeverityIncidents: number;
+  highSeverityIncidents: number;
+  criticalSeverityIncidents: number;
   overdueIncidents: number;
   dueSoonIncidents: number;
   unscheduledActiveIncidents: number;
+  assignedActiveIncidents: number;
+  unassignedActiveIncidents: number;
 }

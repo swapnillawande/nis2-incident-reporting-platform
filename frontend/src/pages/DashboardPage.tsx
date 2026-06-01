@@ -160,6 +160,68 @@ function DashboardPage() {
     ],
     lang: { noData: emptyChartLabel },
   }), [summary, emptyChartLabel]);
+  const severityChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "pie", height: 300 },
+    colors: ["#38bdf8", "#f59e0b", "#f97316", "#dc2626"],
+    tooltip: { pointFormat: "<b>{point.y}</b> incidents ({point.percentage:.0f}%)" },
+    plotOptions: {
+      pie: {
+        innerSize: "55%",
+        dataLabels: {
+          color: chartTextColor,
+          distance: 16,
+          format: "{point.name}: {point.y}",
+          style: {
+            textOutline: "none",
+            fontWeight: "700",
+          },
+        },
+      },
+    },
+    series: [
+      {
+        type: "pie",
+        name: "Severity",
+        data: [
+          ["Low", summary?.lowSeverityIncidents ?? 0],
+          ["Medium", summary?.mediumSeverityIncidents ?? 0],
+          ["High", summary?.highSeverityIncidents ?? 0],
+          ["Critical", summary?.criticalSeverityIncidents ?? 0],
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
+  const assignmentCoverageChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "pie", height: 300 },
+    colors: ["#10b981", "#dc2626"],
+    tooltip: { pointFormat: "<b>{point.y}</b> active incidents ({point.percentage:.0f}%)" },
+    plotOptions: {
+      pie: {
+        innerSize: "64%",
+        dataLabels: {
+          color: chartTextColor,
+          distance: 18,
+          format: "{point.name}: {point.y}",
+          style: {
+            textOutline: "none",
+            fontWeight: "700",
+          },
+        },
+      },
+    },
+    series: [
+      {
+        type: "pie",
+        name: "Assignment",
+        data: [
+          ["Assigned", summary?.assignedActiveIncidents ?? 0],
+          ["Unassigned", summary?.unassignedActiveIncidents ?? 0],
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
   const userStatusChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "pie", height: 300 },
     colors: ["#10b981", "#64748b", "#dc2626"],
@@ -290,6 +352,22 @@ function DashboardPage() {
               <h3>SLA Exposure</h3>
             </div>
             <DashboardChart options={slaExposureChart} />
+          </div>
+
+          <div className="chart-panel">
+            <div>
+              <span className="chart-kicker">Incident Risk</span>
+              <h3>Severity Distribution</h3>
+            </div>
+            <DashboardChart options={severityChart} />
+          </div>
+
+          <div className="chart-panel">
+            <div>
+              <span className="chart-kicker">Triage Ownership</span>
+              <h3>Assignment Coverage</h3>
+            </div>
+            <DashboardChart options={assignmentCoverageChart} />
           </div>
 
           <div className="chart-panel chart-panel-wide">
