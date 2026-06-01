@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/PaginationControls";
+import SortControls from "../components/SortControls";
 import { exportAuditLogsCsv, getAuditLogs } from "../api/auditApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import type { AuditLogResponse } from "../types/audit";
+import type { SortDirection } from "../types/pagination";
 
 const ACTION_OPTIONS = [
   "USER_REGISTERED",
@@ -16,6 +18,12 @@ const ACTION_OPTIONS = [
 ];
 
 const RESOURCE_TYPE_OPTIONS = ["USER", "INCIDENT"];
+const AUDIT_SORT_OPTIONS = [
+  { label: "Created", value: "createdAt" },
+  { label: "Action", value: "action" },
+  { label: "Resource", value: "resourceType" },
+  { label: "Actor", value: "actorEmail" },
+];
 
 const formatAction = (action: string) => action.replaceAll("_", " ");
 
@@ -38,6 +46,8 @@ function AuditLogsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalAuditLogs, setTotalAuditLogs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -56,6 +66,8 @@ function AuditLogsPage() {
         query: queryFilter,
         page: targetPage,
         size: targetSize,
+        sortBy,
+        sortDir,
       });
       setAuditLogs(response.content);
       setPage(response.page);
@@ -107,6 +119,8 @@ function AuditLogsPage() {
       query: queryFilter,
       page,
       size: pageSize,
+      sortBy,
+      sortDir,
     })
       .then((response) => {
         setAuditLogs(response.content);
@@ -121,7 +135,7 @@ function AuditLogsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter, page, pageSize]);
+  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter, page, pageSize, sortBy, sortDir]);
 
   if (!isAdmin) {
     return (
@@ -221,6 +235,22 @@ function AuditLogsPage() {
         >
           Clear Filters
         </button>
+      </section>
+
+      <section className="sort-bar">
+        <SortControls
+          options={AUDIT_SORT_OPTIONS}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSortByChange={(nextSortBy) => {
+            setSortBy(nextSortBy);
+            setPage(0);
+          }}
+          onSortDirChange={(nextSortDir) => {
+            setSortDir(nextSortDir);
+            setPage(0);
+          }}
+        />
       </section>
 
       <section className="table-panel">

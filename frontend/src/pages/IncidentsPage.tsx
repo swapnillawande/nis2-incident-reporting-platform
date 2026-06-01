@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/PaginationControls";
+import SortControls from "../components/SortControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
@@ -19,9 +20,18 @@ import type {
   IncidentStatus,
   UpdateIncidentRequest,
 } from "../types/incident";
+import type { SortDirection } from "../types/pagination";
 
 const SEVERITY_OPTIONS: IncidentSeverity[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUS_OPTIONS: IncidentStatus[] = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const INCIDENT_SORT_OPTIONS = [
+  { label: "Created", value: "createdAt" },
+  { label: "Title", value: "title" },
+  { label: "Severity", value: "severity" },
+  { label: "Status", value: "status" },
+  { label: "SLA Due", value: "dueAt" },
+  { label: "Assigned To", value: "assignedToEmail" },
+];
 
 const emptyCreateForm: CreateIncidentRequest = {
   title: "",
@@ -100,6 +110,8 @@ function IncidentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalIncidents, setTotalIncidents] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -137,6 +149,8 @@ function IncidentsPage() {
         query: queryFilter,
         page: targetPage,
         size: targetSize,
+        sortBy,
+        sortDir,
       });
       setIncidents(response.content);
       setPage(response.page);
@@ -159,6 +173,8 @@ function IncidentsPage() {
         query: queryFilter,
         page,
         size: pageSize,
+        sortBy,
+        sortDir,
       })
       .then((response) => {
         setIncidents(response.content);
@@ -174,7 +190,7 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter, assignedToFilter, queryFilter, page, pageSize]);
+  }, [statusFilter, severityFilter, assignedToFilter, queryFilter, page, pageSize, sortBy, sortDir]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -480,6 +496,22 @@ function IncidentsPage() {
         >
           Mine
         </button>
+      </section>
+
+      <section className="sort-bar">
+        <SortControls
+          options={INCIDENT_SORT_OPTIONS}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSortByChange={(nextSortBy) => {
+            setSortBy(nextSortBy);
+            setPage(0);
+          }}
+          onSortDirChange={(nextSortDir) => {
+            setSortDir(nextSortDir);
+            setPage(0);
+          }}
+        />
       </section>
 
       <section className="bulk-action-bar">
