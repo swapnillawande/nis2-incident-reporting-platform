@@ -29,5 +29,7 @@ public interface IncidentService {
 
     IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail);
 
+    List<IncidentResponseDto> bulkUpdateStatus(List<Long> incidentIds, IncidentStatus status, String actorEmail);
+
     IncidentResponseDto deleteIncidentById(Long incidentId, String actorEmail);
 }

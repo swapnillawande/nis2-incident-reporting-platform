@@ -1,5 +1,6 @@
 package com.nisync.incident.controller;
 
+import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
@@ -119,6 +120,25 @@ public class IncidentController {
         logger.info("PUT /incidents/{} called by {}", incidentId, authentication.getName());
 
         return incidentService.updateIncidentById(incidentId, request, authentication.getName());
+    }
+
+    @PutMapping("/bulk-status")
+    public List<IncidentResponseDto> bulkUpdateIncidentStatus(
+            @Valid @RequestBody BulkIncidentStatusUpdateRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "PUT /incidents/bulk-status called by {}. count: {}, status: {}",
+                authentication.getName(),
+                request.getIncidentIds().size(),
+                request.getStatus()
+        );
+
+        return incidentService.bulkUpdateStatus(
+                request.getIncidentIds(),
+                request.getStatus(),
+                authentication.getName()
+        );
     }
 
     @DeleteMapping("/{incidentId}")

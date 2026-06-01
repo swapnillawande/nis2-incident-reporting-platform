@@ -20,9 +20,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -174,6 +177,51 @@ public class IncidentServiceImpl implements IncidentService {
         logger.info("Incident updated successfully. incidentId: {}", savedIncident.getId());
 
         return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
+    public List<IncidentResponseDto> bulkUpdateStatus(
+            List<Long> incidentIds,
+            IncidentStatus status,
+            String actorEmail) {
+
+        logger.info("Bulk updating incident status. count: {}, status: {}, actor: {}", incidentIds.size(), status, actorEmail);
+
+        List<Long> distinctIncidentIds = incidentIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<Incident> incidents = incidentRepository.findAllById(distinctIncidentIds);
+        Set<Long> foundIncidentIds = incidents.stream()
+                .map(Incident::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+        List<Long> missingIncidentIds = distinctIncidentIds.stream()
+                .filter(incidentId -> !foundIncidentIds.contains(incidentId))
+                .toList();
+
+        if (!missingIncidentIds.isEmpty()) {
+            logger.warn("Bulk status update failed. Missing incident ids: {}", missingIncidentIds);
+            throw new ResourceNotFoundException("Incidents not found with ids: " + missingIncidentIds);
+        }
+
+        incidents.forEach(incident -> incident.setStatus(status));
+
+        List<Incident> savedIncidents = new ArrayList<>();
+        incidentRepository.saveAll(incidents).forEach(savedIncidents::add);
+
+        auditLogService.record(
+                "INCIDENTS_BULK_STATUS_UPDATED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents status updated to " + status + ". Count: " + savedIncidents.size()
+        );
+
+        logger.info("Bulk incident status update completed. count: {}, status: {}", savedIncidents.size(), status);
+
+        return savedIncidents.stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
     }
 
     @Override

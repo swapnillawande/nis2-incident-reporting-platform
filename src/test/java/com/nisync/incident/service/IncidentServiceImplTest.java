@@ -172,6 +172,48 @@ class IncidentServiceImplTest {
     }
 
     @Test
+    void shouldBulkUpdateIncidentStatusSuccessfully() {
+        Incident firstIncident = buildIncident(1L, "First Incident");
+        Incident secondIncident = buildIncident(2L, "Second Incident");
+
+        when(incidentRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<IncidentResponseDto> response = incidentService.bulkUpdateStatus(
+                List.of(1L, 2L),
+                IncidentStatus.RESOLVED,
+                "admin@nis2.com"
+        );
+
+        assertEquals(2, response.size());
+        assertEquals(IncidentStatus.RESOLVED, response.get(0).getStatus());
+        assertEquals(IncidentStatus.RESOLVED, response.get(1).getStatus());
+        verify(auditLogService).record(
+                eq("INCIDENTS_BULK_STATUS_UPDATED"),
+                eq("INCIDENT"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Incidents status updated to RESOLVED. Count: 2")
+        );
+    }
+
+    @Test
+    void shouldThrowWhenBulkUpdateIncidentStatusHasMissingIds() {
+        Incident incident = buildIncident(1L, "First Incident");
+
+        when(incidentRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(incident));
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> incidentService.bulkUpdateStatus(
+                        List.of(1L, 2L),
+                        IncidentStatus.RESOLVED,
+                        "admin@nis2.com"
+                )
+        );
+    }
+
+    @Test
     void shouldDeleteIncidentSuccessfully() {
         Incident incident = buildIncident(1L, "Delete Incident");
 
