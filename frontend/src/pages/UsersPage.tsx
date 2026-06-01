@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/PaginationControls";
+import SavedViewControls from "../components/SavedViewControls";
 import SortControls from "../components/SortControls";
+import {
+  createSavedView,
+  deleteSavedView,
+  getSavedViews,
+} from "../api/savedViewApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   createUser,
@@ -17,6 +23,7 @@ import type {
   UserStatus,
 } from "../types/user";
 import type { SortDirection } from "../types/pagination";
+import type { SavedViewResponse } from "../types/savedView";
 
 const ROLE_OPTIONS: RoleName[] = [
   "ADMIN",
@@ -68,11 +75,27 @@ function UsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [savedViews, setSavedViews] = useState<SavedViewResponse[]>([]);
+  const [savedViewName, setSavedViewName] = useState("");
+  const [isSavingView, setIsSavingView] = useState(false);
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
     setMessageType(type);
   };
+
+  useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
+    getSavedViews("USERS")
+      .then(setSavedViews)
+      .catch((error: unknown) => {
+        setMessage(getApiErrorMessage(error, "Failed to load saved views"));
+        setMessageType("error");
+      });
+  }, [isAdmin]);
 
   const loadUsers = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
@@ -252,6 +275,72 @@ function UsersPage() {
     }
   };
 
+  const buildSavedViewFilterJson = () =>
+    JSON.stringify({
+      queryFilter,
+      statusFilter,
+      roleFilter,
+      createdFromFilter,
+      createdToFilter,
+      sortBy,
+      sortDir,
+      pageSize,
+    });
+
+  const handleSaveView = async () => {
+    if (!savedViewName.trim()) {
+      return;
+    }
+
+    setIsSavingView(true);
+
+    try {
+      const savedView = await createSavedView({
+        viewType: "USERS",
+        name: savedViewName,
+        filterJson: buildSavedViewFilterJson(),
+      });
+      setSavedViews((currentSavedViews) => [savedView, ...currentSavedViews]);
+      setSavedViewName("");
+      showMessage("Saved view created", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to save view"), "error");
+    } finally {
+      setIsSavingView(false);
+    }
+  };
+
+  const handleApplySavedView = (savedView: SavedViewResponse) => {
+    try {
+      const filters = JSON.parse(savedView.filterJson) as Record<string, string | number>;
+
+      setQueryFilter(String(filters.queryFilter ?? ""));
+      setStatusFilter((filters.statusFilter as UserStatus | "") ?? "");
+      setRoleFilter((filters.roleFilter as RoleName | "") ?? "");
+      setCreatedFromFilter(String(filters.createdFromFilter ?? ""));
+      setCreatedToFilter(String(filters.createdToFilter ?? ""));
+      setSortBy(String(filters.sortBy ?? "createdAt"));
+      setSortDir((filters.sortDir as SortDirection) ?? "desc");
+      setPageSize(Number(filters.pageSize ?? 10));
+      setPage(0);
+      showMessage(`Applied saved view: ${savedView.name}`, "success");
+    } catch {
+      showMessage("Saved view could not be applied", "error");
+    }
+  };
+
+  const handleDeleteSavedView = async (savedView: SavedViewResponse) => {
+    try {
+      await deleteSavedView(savedView.id);
+      setSavedViews((currentSavedViews) =>
+        currentSavedViews.filter((item) => item.id !== savedView.id)
+      );
+      showMessage("Saved view deleted", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to delete saved view"), "error");
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="page-container">
@@ -293,6 +382,17 @@ function UsersPage() {
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
+
+      <SavedViewControls
+        savedViews={savedViews}
+        saveName={savedViewName}
+        isSaving={isSavingView}
+        placeholder="Active auditors"
+        onApply={handleApplySavedView}
+        onDelete={handleDeleteSavedView}
+        onNameChange={setSavedViewName}
+        onSave={handleSaveView}
+      />
 
       <section className="filter-bar">
         <div className="filter-group">

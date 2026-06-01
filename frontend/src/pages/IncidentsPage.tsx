@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/PaginationControls";
+import SavedViewControls from "../components/SavedViewControls";
 import SortControls from "../components/SortControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
@@ -12,6 +13,11 @@ import {
   getIncidentNotes,
   updateIncident,
 } from "../api/incidentApi";
+import {
+  createSavedView,
+  deleteSavedView,
+  getSavedViews,
+} from "../api/savedViewApi";
 import type {
   CreateIncidentRequest,
   IncidentResponse,
@@ -21,6 +27,7 @@ import type {
   UpdateIncidentRequest,
 } from "../types/incident";
 import type { SortDirection } from "../types/pagination";
+import type { SavedViewResponse } from "../types/savedView";
 
 const SEVERITY_OPTIONS: IncidentSeverity[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUS_OPTIONS: IncidentStatus[] = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
@@ -116,6 +123,9 @@ function IncidentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [savedViews, setSavedViews] = useState<SavedViewResponse[]>([]);
+  const [savedViewName, setSavedViewName] = useState("");
+  const [isSavingView, setIsSavingView] = useState(false);
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -139,6 +149,15 @@ function IncidentsPage() {
     setMessage(text);
     setMessageType(type);
   };
+
+  useEffect(() => {
+    getSavedViews("INCIDENTS")
+      .then(setSavedViews)
+      .catch((error: unknown) => {
+        setMessage(getApiErrorMessage(error, "Failed to load saved views"));
+        setMessageType("error");
+      });
+  }, []);
 
   const loadIncidents = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
@@ -382,6 +401,78 @@ function IncidentsPage() {
     }
   };
 
+  const buildSavedViewFilterJson = () =>
+    JSON.stringify({
+      statusFilter,
+      severityFilter,
+      assignedToFilter,
+      queryFilter,
+      createdFromFilter,
+      createdToFilter,
+      dueFromFilter,
+      dueToFilter,
+      sortBy,
+      sortDir,
+      pageSize,
+    });
+
+  const handleSaveView = async () => {
+    if (!savedViewName.trim()) {
+      return;
+    }
+
+    setIsSavingView(true);
+
+    try {
+      const savedView = await createSavedView({
+        viewType: "INCIDENTS",
+        name: savedViewName,
+        filterJson: buildSavedViewFilterJson(),
+      });
+      setSavedViews((currentSavedViews) => [savedView, ...currentSavedViews]);
+      setSavedViewName("");
+      showMessage("Saved view created", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to save view"), "error");
+    } finally {
+      setIsSavingView(false);
+    }
+  };
+
+  const handleApplySavedView = (savedView: SavedViewResponse) => {
+    try {
+      const filters = JSON.parse(savedView.filterJson) as Record<string, string | number>;
+
+      setStatusFilter((filters.statusFilter as IncidentStatus | "") ?? "");
+      setSeverityFilter((filters.severityFilter as IncidentSeverity | "") ?? "");
+      setAssignedToFilter(String(filters.assignedToFilter ?? ""));
+      setQueryFilter(String(filters.queryFilter ?? ""));
+      setCreatedFromFilter(String(filters.createdFromFilter ?? ""));
+      setCreatedToFilter(String(filters.createdToFilter ?? ""));
+      setDueFromFilter(String(filters.dueFromFilter ?? ""));
+      setDueToFilter(String(filters.dueToFilter ?? ""));
+      setSortBy(String(filters.sortBy ?? "createdAt"));
+      setSortDir((filters.sortDir as SortDirection) ?? "desc");
+      setPageSize(Number(filters.pageSize ?? 10));
+      setPage(0);
+      showMessage(`Applied saved view: ${savedView.name}`, "success");
+    } catch {
+      showMessage("Saved view could not be applied", "error");
+    }
+  };
+
+  const handleDeleteSavedView = async (savedView: SavedViewResponse) => {
+    try {
+      await deleteSavedView(savedView.id);
+      setSavedViews((currentSavedViews) =>
+        currentSavedViews.filter((item) => item.id !== savedView.id)
+      );
+      showMessage("Saved view deleted", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to delete saved view"), "error");
+    }
+  };
+
   const handleExportCsv = async () => {
     setIsExporting(true);
 
@@ -432,6 +523,17 @@ function IncidentsPage() {
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
+
+      <SavedViewControls
+        savedViews={savedViews}
+        saveName={savedViewName}
+        isSaving={isSavingView}
+        placeholder="Open incidents this week"
+        onApply={handleApplySavedView}
+        onDelete={handleDeleteSavedView}
+        onNameChange={setSavedViewName}
+        onSave={handleSaveView}
+      />
 
       <section className="filter-bar">
         <div className="filter-group">

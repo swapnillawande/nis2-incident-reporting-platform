@@ -728,6 +728,36 @@ button:disabled {
   justify-content: start;
 }
 
+.saved-view-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+:root[data-theme="dark"] .saved-view-bar {
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.saved-view-picker,
+.saved-view-save {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.saved-view-bar button {
+  height: 44px;
+  white-space: nowrap;
+}
+
 .sort-bar {
   display: flex;
   justify-content: flex-end;
@@ -1006,6 +1036,10 @@ button:disabled {
   .bulk-action-bar { align-items: stretch; flex-direction: column; }
   .bulk-action-controls { justify-content: stretch; }
   .bulk-action-controls select, .bulk-action-controls button { width: 100%; }
+  .saved-view-bar, .saved-view-picker, .saved-view-save {
+    grid-template-columns: 1fr;
+  }
+  .saved-view-bar button { width: 100%; }
   .sort-bar { justify-content: stretch; }
   .sort-controls { align-items: stretch; flex-direction: column; width: 100%; }
   .sort-controls .filter-group, .sort-direction-button { width: 100%; }
