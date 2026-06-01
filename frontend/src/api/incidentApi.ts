@@ -131,6 +131,45 @@ export const bulkUpdateIncidentStatus = async (
   return response.data;
 };
 
+export const assignIncident = async (
+  incidentId: number,
+  assignedToEmail: string
+): Promise<IncidentResponse> => {
+  const response = await axios.put(
+    `${API_BASE_URL}/incidents/${incidentId}/assignment`,
+    { assignedToEmail },
+    {
+      headers: getAuthHeader(),
+    }
+  );
+
+  return response.data;
+};
+
+export const assignIncidentToMe = async (
+  incidentId: number
+): Promise<IncidentResponse> => {
+  const response = await axios.put(
+    `${API_BASE_URL}/incidents/${incidentId}/assignment/me`,
+    {},
+    {
+      headers: getAuthHeader(),
+    }
+  );
+
+  return response.data;
+};
+
+export const unassignIncident = async (
+  incidentId: number
+): Promise<IncidentResponse> => {
+  const response = await axios.delete(`${API_BASE_URL}/incidents/${incidentId}/assignment`, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
 export const deleteIncident = async (
   incidentId: number
 ): Promise<IncidentResponse> => {

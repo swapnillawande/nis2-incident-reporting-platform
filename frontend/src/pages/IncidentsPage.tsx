@@ -5,12 +5,14 @@ import SortControls from "../components/SortControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
+  assignIncidentToMe,
   bulkUpdateIncidentStatus,
   createIncident,
   deleteIncident,
   exportIncidentsCsv,
   getAllIncidents,
   getIncidentTimeline,
+  unassignIncident,
   updateIncident,
 } from "../api/incidentApi";
 import {
@@ -111,6 +113,7 @@ function IncidentsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [assignmentUpdatingId, setAssignmentUpdatingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
@@ -414,6 +417,39 @@ function IncidentsPage() {
       showMessage(getApiErrorMessage(error, "Failed to update selected incidents"), "error");
     } finally {
       setIsBulkUpdating(false);
+    }
+  };
+
+  const handleAssignToMe = async (incident: IncidentResponse) => {
+    if (!currentUser?.email) {
+      showMessage("Current user email is not available", "error");
+      return;
+    }
+
+    setAssignmentUpdatingId(incident.id);
+
+    try {
+      await assignIncidentToMe(incident.id);
+      await loadIncidents(page, pageSize);
+      showMessage(`Incident assigned to ${currentUser.email}`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to assign incident"), "error");
+    } finally {
+      setAssignmentUpdatingId(null);
+    }
+  };
+
+  const handleUnassign = async (incident: IncidentResponse) => {
+    setAssignmentUpdatingId(incident.id);
+
+    try {
+      await unassignIncident(incident.id);
+      await loadIncidents(page, pageSize);
+      showMessage("Incident unassigned", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to unassign incident"), "error");
+    } finally {
+      setAssignmentUpdatingId(null);
     }
   };
 
@@ -898,7 +934,30 @@ function IncidentsPage() {
                     </td>
                     <td>{incident.reportedByEmail}</td>
                     <td>{formatReportedAt(incident.createdAt)}</td>
-                    <td>{incident.assignedToEmail || "Unassigned"}</td>
+                    <td>
+                      <div className="assignment-cell">
+                        <span>{incident.assignedToEmail || "Unassigned"}</span>
+                        <div className="assignment-actions">
+                          {incident.assignedToEmail ? (
+                            <button
+                              className="btn-secondary compact"
+                              disabled={assignmentUpdatingId === incident.id}
+                              onClick={() => handleUnassign(incident)}
+                            >
+                              {assignmentUpdatingId === incident.id ? "Updating..." : "Unassign"}
+                            </button>
+                          ) : (
+                            <button
+                              className="btn-secondary compact"
+                              disabled={!currentUser?.email || assignmentUpdatingId === incident.id}
+                              onClick={() => handleAssignToMe(incident)}
+                            >
+                              {assignmentUpdatingId === incident.id ? "Updating..." : "Assign me"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td>
                       <span className={`sla-pill sla-${getDueStatus(incident).toLowerCase().replaceAll(" ", "-")}`}>
                         {getDueStatus(incident)}

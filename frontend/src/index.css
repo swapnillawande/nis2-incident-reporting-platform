@@ -605,6 +605,23 @@ button:disabled {
 
 .table-actions, .modal-actions { display: flex; align-items: center; gap: 10px; }
 
+.assignment-cell {
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.assignment-cell > span {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.assignment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn-secondary, .btn-danger {
   width: auto;
   min-height: 44px;
