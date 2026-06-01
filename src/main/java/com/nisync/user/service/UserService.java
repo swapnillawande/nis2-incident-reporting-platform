@@ -1,15 +1,21 @@
 package com.nisync.user.service;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 
 public interface UserService {
 
     UserResponseDto register(RegisterRequestDto request);
+
+    UserResponseDto createUser(RegisterRequestDto request, String actorEmail);
     
     AuthResponseDto login(LoginRequestDto request);
 
@@ -17,7 +23,24 @@ public interface UserService {
     
     UserResponseDto getUserById(Long userId);
     
-    List<UserResponseDto> getAllUsers();
+    PagedResponseDto<UserResponseDto> getAllUsers(
+            UserStatus status,
+            RoleName role,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
+
+    String exportUsersCsv(
+            UserStatus status,
+            RoleName role,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            String actorEmail);
     
     UserResponseDto updateUserById(Long userId, UserResponseDto userResponseDto, String actorEmail);
     

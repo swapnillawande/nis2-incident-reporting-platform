@@ -1,5 +1,6 @@
 package com.nisync.user.service;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.DuplicateResourceException;
@@ -15,6 +16,10 @@ import com.nisync.user.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -30,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,6 +104,35 @@ public class UserServiceImplTest {
     }
 
     @Test
+    void shouldCreateUserByAdminSuccessfully() {
+        RegisterRequestDto request = new RegisterRequestDto();
+        request.setFullName("Analyst User");
+        request.setEmail("analyst@test.com");
+        request.setPassword("test@1234");
+        request.setRole(RoleName.SECURITY_ANALYST);
+
+        AppUser savedUser = buildUser(10L, "Analyst User", "analyst@test.com");
+        savedUser.setRoles(Set.of(RoleName.SECURITY_ANALYST));
+
+        when(userRepository.existsByEmail("analyst@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("test@1234")).thenReturn("encoded-password");
+        when(userRepository.save(any(AppUser.class))).thenReturn(savedUser);
+
+        UserResponseDto response = userService.createUser(request, "admin@nis2.com");
+
+        assertEquals(10L, response.getId());
+        assertEquals("analyst@test.com", response.getEmail());
+        assertTrue(response.getRoles().contains(RoleName.SECURITY_ANALYST));
+        verify(auditLogService).record(
+                eq("USER_CREATED"),
+                eq("USER"),
+                eq(10L),
+                eq("admin@nis2.com"),
+                eq("User created: analyst@test.com")
+        );
+    }
+
+    @Test
     void shouldGetUserByIdSuccessfully() {
         AppUser user = buildUser(1L, "Test User", "test@test.com");
 
@@ -122,13 +158,78 @@ public class UserServiceImplTest {
         AppUser firstUser = buildUser(1L, "First User", "first@test.com");
         AppUser secondUser = buildUser(2L, "Second User", "second@test.com");
 
-        when(userRepository.findAll()).thenReturn(List.of(firstUser, secondUser));
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescPageable()))
+                .thenReturn(new PageImpl<>(List.of(firstUser, secondUser)));
 
-        List<UserResponseDto> response = userService.getAllUsers();
+        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                10,
+                "createdAt",
+                "desc"
+        );
 
-        assertEquals(2, response.size());
-        assertEquals("first@test.com", response.get(0).getEmail());
-        assertEquals("second@test.com", response.get(1).getEmail());
+        assertEquals(2, response.getContent().size());
+        assertEquals("first@test.com", response.getContent().get(0).getEmail());
+        assertEquals("second@test.com", response.getContent().get(1).getEmail());
+    }
+
+    @Test
+    void shouldFilterUsersSuccessfully() {
+        AppUser user = buildUser(1L, "Filtered User", "filtered@test.com");
+        user.setRoles(Set.of(RoleName.AUDITOR));
+
+        when(userRepository.findAll(anyUserSpecification(), anyEmailAscPageable()))
+                .thenReturn(new PageImpl<>(List.of(user)));
+
+        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(
+                UserStatus.ACTIVE,
+                RoleName.AUDITOR,
+                "filtered",
+                LocalDateTime.of(2026, 1, 1, 0, 0),
+                LocalDateTime.of(2026, 12, 31, 23, 59),
+                0,
+                10,
+                "email",
+                "asc"
+        );
+
+        assertEquals(1, response.getContent().size());
+        assertEquals("filtered@test.com", response.getContent().get(0).getEmail());
+        assertTrue(response.getContent().get(0).getRoles().contains(RoleName.AUDITOR));
+    }
+
+    @Test
+    void shouldExportUsersCsvSuccessfully() {
+        AppUser user = buildUser(1L, "Admin, \"Lead\"", "admin@test.com");
+        user.setRoles(Set.of(RoleName.ADMIN, RoleName.AUDITOR));
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 15, 10, 30));
+        user.setUpdatedAt(LocalDateTime.of(2026, 1, 16, 11, 45));
+
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(user));
+
+        String csv = userService.exportUsersCsv(
+                UserStatus.ACTIVE,
+                RoleName.ADMIN,
+                "admin",
+                LocalDateTime.of(2026, 1, 1, 0, 0),
+                LocalDateTime.of(2026, 1, 31, 23, 59),
+                "admin@nis2.com"
+        );
+
+        assertTrue(csv.startsWith("ID,Full Name,Email,Status,Roles,Created At,Updated At"));
+        assertTrue(csv.contains("1,\"Admin, \"\"Lead\"\"\",admin@test.com,ACTIVE,ADMIN;AUDITOR,2026-01-15T10:30,2026-01-16T11:45"));
+        verify(auditLogService).record(
+                eq("USERS_EXPORTED"),
+                eq("USER"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Users exported to CSV. Count: 1")
+        );
     }
 
     @Test
@@ -191,6 +292,23 @@ public class UserServiceImplTest {
 
         return user;
     }
+
+    private Specification<AppUser> anyUserSpecification() {
+        return any();
+    }
+
+    private Sort anyCreatedAtDescSort() {
+        return argThat(sort -> sort.getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyCreatedAtDescPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyEmailAscPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("email") != null
+                && Sort.Direction.ASC.equals(pageable.getSort().getOrderFor("email").getDirection()));
+    }
 }
-
-

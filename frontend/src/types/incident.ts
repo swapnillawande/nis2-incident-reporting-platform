@@ -9,6 +9,8 @@ export interface IncidentResponse {
   severity: IncidentSeverity;
   status: IncidentStatus;
   reportedByEmail: string;
+  assignedToEmail: string | null;
+  dueAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +19,8 @@ export interface CreateIncidentRequest {
   title: string;
   description: string;
   severity: IncidentSeverity;
+  assignedToEmail?: string;
+  dueAt?: string;
 }
 
 export interface UpdateIncidentRequest {
@@ -24,6 +28,14 @@ export interface UpdateIncidentRequest {
   description?: string;
   severity?: IncidentSeverity;
   status?: IncidentStatus;
+  assignedToEmail?: string;
+  dueAt?: string;
+  clearDueAt?: boolean;
+}
+
+export interface BulkIncidentStatusUpdateRequest {
+  incidentIds: number[];
+  status: IncidentStatus;
 }
 
 export interface IncidentNote {
@@ -36,4 +48,16 @@ export interface IncidentNote {
 
 export interface CreateIncidentNoteRequest {
   note: string;
+}
+
+export type IncidentTimelineItemType = "NOTE" | "AUDIT";
+
+export interface IncidentTimelineItem {
+  type: IncidentTimelineItemType;
+  id: number;
+  action: string | null;
+  actorEmail: string;
+  details: string | null;
+  note: string | null;
+  createdAt: string;
 }

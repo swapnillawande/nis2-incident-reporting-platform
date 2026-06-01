@@ -1,13 +1,27 @@
 package com.nisync.dashboard.service.impl;
 
+import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.dashboard.dto.DashboardSummaryDto;
+import com.nisync.dashboard.dto.DashboardTrendPointDto;
 import com.nisync.dashboard.service.DashboardService;
+import com.nisync.incident.dto.IncidentMapperDto;
+import com.nisync.incident.dto.IncidentResponseDto;
+import com.nisync.incident.enums.IncidentSeverity;
 import com.nisync.incident.enums.IncidentStatus;
 import com.nisync.incident.repository.IncidentRepository;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 import com.nisync.user.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -18,20 +32,93 @@ public class DashboardServiceImpl implements DashboardService {
     @Autowired
     private IncidentRepository incidentRepository;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     @Override
     public DashboardSummaryDto getSummary() {
         long openIncidents = incidentRepository.countByStatus(IncidentStatus.OPEN);
         long inProgressIncidents = incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
         long resolvedIncidents = incidentRepository.countByStatus(IncidentStatus.RESOLVED);
         long closedIncidents = incidentRepository.countByStatus(IncidentStatus.CLOSED);
+        LocalDateTime now = LocalDateTime.now();
+        List<IncidentStatus> activeStatuses = getActiveStatuses();
 
         return new DashboardSummaryDto(
                 userRepository.count(),
+                userRepository.countByStatus(UserStatus.ACTIVE),
+                userRepository.countByStatus(UserStatus.INACTIVE),
+                userRepository.countByStatus(UserStatus.SUSPENDED),
+                auditLogRepository.count(),
+                userRepository.countByRole(RoleName.ADMIN),
+                userRepository.countByRole(RoleName.SECURITY_ANALYST),
+                userRepository.countByRole(RoleName.COMPLIANCE_OFFICER),
+                userRepository.countByRole(RoleName.AUDITOR),
                 incidentRepository.count(),
                 openIncidents,
                 inProgressIncidents,
                 resolvedIncidents,
-                closedIncidents
+                closedIncidents,
+                incidentRepository.countBySeverity(IncidentSeverity.LOW),
+                incidentRepository.countBySeverity(IncidentSeverity.MEDIUM),
+                incidentRepository.countBySeverity(IncidentSeverity.HIGH),
+                incidentRepository.countBySeverity(IncidentSeverity.CRITICAL),
+                incidentRepository.countByDueAtBeforeAndStatusIn(now, activeStatuses),
+                incidentRepository.countByDueAtBetweenAndStatusIn(now, now.plusHours(24), activeStatuses),
+                incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses),
+                incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(activeStatuses),
+                incidentRepository.countByAssignedToEmailIsNullAndStatusIn(activeStatuses),
+                buildIncidentTrend(now.toLocalDate()),
+                buildAuditTrend(now.toLocalDate())
         );
+    }
+
+    @Override
+    public List<IncidentResponseDto> getRecentActiveIncidents() {
+        return incidentRepository.findTop5ByStatusInOrderByCreatedAtDesc(getActiveStatuses())
+                .stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
+    }
+
+    private List<IncidentStatus> getActiveStatuses() {
+        return List.of(
+                IncidentStatus.OPEN,
+                IncidentStatus.IN_PROGRESS
+        );
+    }
+
+    private List<DashboardTrendPointDto> buildIncidentTrend(LocalDate today) {
+        LocalDate startDate = today.minusDays(6);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        Map<LocalDate, Long> incidentsByDate = incidentRepository
+                .findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(startDateTime)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        incident -> incident.getCreatedAt().toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        return IntStream.rangeClosed(0, 6)
+                .mapToObj(startDate::plusDays)
+                .map(date -> new DashboardTrendPointDto(date.toString(), incidentsByDate.getOrDefault(date, 0L)))
+                .toList();
+    }
+
+    private List<DashboardTrendPointDto> buildAuditTrend(LocalDate today) {
+        LocalDate startDate = today.minusDays(6);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        Map<LocalDate, Long> auditLogsByDate = auditLogRepository
+                .findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(startDateTime)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        auditLog -> auditLog.getCreatedAt().toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        return IntStream.rangeClosed(0, 6)
+                .mapToObj(startDate::plusDays)
+                .map(date -> new DashboardTrendPointDto(date.toString(), auditLogsByDate.getOrDefault(date, 0L)))
+                .toList();
     }
 }

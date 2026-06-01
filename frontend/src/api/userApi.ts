@@ -1,11 +1,15 @@
 import axios from "axios";
 import type {
   AuthResponse,
+  CreateUserRequest,
   LoginRequest,
   RegisterRequest,
   UpdateUserRequest,
   UserResponse,
+  RoleName,
+  UserStatus,
 } from "../types/user";
+import type { PagedResponse, PaginationParams } from "../types/pagination";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
@@ -31,6 +35,16 @@ export const registerUser = async (
   return response.data;
 };
 
+export const createUser = async (
+  data: CreateUserRequest
+): Promise<UserResponse> => {
+  const response = await axios.post(`${API_BASE_URL}/users`, data, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
 export const loginUser = async (
   data: LoginRequest
 ): Promise<AuthResponse> => {
@@ -46,9 +60,48 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
   return response.data;
 };
 
-export const getAllUsers = async (): Promise<UserResponse[]> => {
+export interface UserFilters extends PaginationParams {
+  status?: UserStatus | "";
+  role?: RoleName | "";
+  query?: string;
+  createdFrom?: string;
+  createdTo?: string;
+}
+
+export const getAllUsers = async (
+  filters: UserFilters = {}
+): Promise<PagedResponse<UserResponse>> => {
   const response = await axios.get(`${API_BASE_URL}/users`, {
     headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      role: filters.role || undefined,
+      q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
+      page: filters.page,
+      size: filters.size,
+      sortBy: filters.sortBy,
+      sortDir: filters.sortDir,
+    },
+  });
+
+  return response.data;
+};
+
+export const exportUsersCsv = async (
+  filters: UserFilters = {}
+): Promise<Blob> => {
+  const response = await axios.get(`${API_BASE_URL}/users/export`, {
+    headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      role: filters.role || undefined,
+      q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
+    },
+    responseType: "blob",
   });
 
   return response.data;

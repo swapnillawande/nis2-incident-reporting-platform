@@ -11,6 +11,8 @@ export interface RegisterRequest {
   role: RoleName;
 }
 
+export type CreateUserRequest = RegisterRequest;
+
 export interface LoginRequest {
   email: string;
   password: string;

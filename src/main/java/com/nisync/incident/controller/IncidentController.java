@@ -1,5 +1,8 @@
 package com.nisync.incident.controller;
 
+import com.nisync.common.response.PagedResponseDto;
+import com.nisync.incident.dto.AssignIncidentRequestDto;
+import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
@@ -9,12 +12,18 @@ import com.nisync.incident.note.dto.CreateIncidentNoteRequestDto;
 import com.nisync.incident.note.dto.IncidentNoteResponseDto;
 import com.nisync.incident.note.service.IncidentNoteService;
 import com.nisync.incident.service.IncidentService;
+import com.nisync.incident.timeline.dto.IncidentTimelineItemDto;
+import com.nisync.incident.timeline.service.IncidentTimelineService;
 
 import jakarta.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("incidents")
@@ -41,6 +51,9 @@ public class IncidentController {
     @Autowired
     private IncidentNoteService incidentNoteService;
 
+    @Autowired
+    private IncidentTimelineService incidentTimelineService;
+
     @PostMapping
     public IncidentResponseDto createIncident(
             @Valid @RequestBody CreateIncidentRequestDto request,
@@ -52,14 +65,101 @@ public class IncidentController {
     }
 
     @GetMapping
-    public List<IncidentResponseDto> getIncidents(
+    public PagedResponseDto<IncidentResponseDto> getIncidents(
             @RequestParam(name = "status", required = false) IncidentStatus status,
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
-            @RequestParam(name = "q", required = false) String query) {
+            @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @RequestParam(name = "dueFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueFrom,
+            @RequestParam(name = "dueTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueTo,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
 
-        logger.info("GET /incidents called. status: {}, severity: {}, query: {}", status, severity, query);
+        logger.info(
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
 
-        return incidentService.getIncidents(status, severity, query);
+        return incidentService.getIncidents(
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> exportIncidents(
+            @RequestParam(name = "status", required = false) IncidentStatus status,
+            @RequestParam(name = "severity", required = false) IncidentSeverity severity,
+            @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @RequestParam(name = "dueFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueFrom,
+            @RequestParam(name = "dueTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueTo,
+            Authentication authentication) {
+
+        logger.info(
+                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}",
+                authentication.getName(),
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo
+        );
+
+        String csv = incidentService.exportIncidentsCsv(
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                authentication.getName()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=incidents-export.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
     }
 
     @GetMapping("/{incidentId}")
@@ -80,6 +180,69 @@ public class IncidentController {
         return incidentService.updateIncidentById(incidentId, request, authentication.getName());
     }
 
+    @PutMapping("/{incidentId}/assignment")
+    public IncidentResponseDto assignIncident(
+            @PathVariable("incidentId") Long incidentId,
+            @Valid @RequestBody AssignIncidentRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "PUT /incidents/{}/assignment called by {}. assignedToEmail: {}",
+                incidentId,
+                authentication.getName(),
+                request.getAssignedToEmail()
+        );
+
+        return incidentService.assignIncident(
+                incidentId,
+                request.getAssignedToEmail(),
+                authentication.getName()
+        );
+    }
+
+    @PutMapping("/{incidentId}/assignment/me")
+    public IncidentResponseDto assignIncidentToMe(
+            @PathVariable("incidentId") Long incidentId,
+            Authentication authentication) {
+
+        logger.info("PUT /incidents/{}/assignment/me called by {}", incidentId, authentication.getName());
+
+        return incidentService.assignIncident(
+                incidentId,
+                authentication.getName(),
+                authentication.getName()
+        );
+    }
+
+    @DeleteMapping("/{incidentId}/assignment")
+    public IncidentResponseDto unassignIncident(
+            @PathVariable("incidentId") Long incidentId,
+            Authentication authentication) {
+
+        logger.info("DELETE /incidents/{}/assignment called by {}", incidentId, authentication.getName());
+
+        return incidentService.unassignIncident(incidentId, authentication.getName());
+    }
+
+    @PutMapping("/bulk-status")
+    public List<IncidentResponseDto> bulkUpdateIncidentStatus(
+            @Valid @RequestBody BulkIncidentStatusUpdateRequestDto request,
+            Authentication authentication) {
+
+        logger.info(
+                "PUT /incidents/bulk-status called by {}. count: {}, status: {}",
+                authentication.getName(),
+                request.getIncidentIds().size(),
+                request.getStatus()
+        );
+
+        return incidentService.bulkUpdateStatus(
+                request.getIncidentIds(),
+                request.getStatus(),
+                authentication.getName()
+        );
+    }
+
     @DeleteMapping("/{incidentId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SECURITY_ANALYST')")
     public IncidentResponseDto deleteIncidentById(
@@ -95,6 +258,13 @@ public class IncidentController {
         logger.info("GET /incidents/{}/notes called", incidentId);
 
         return incidentNoteService.getNotesByIncidentId(incidentId);
+    }
+
+    @GetMapping("/{incidentId}/timeline")
+    public List<IncidentTimelineItemDto> getIncidentTimeline(@PathVariable("incidentId") Long incidentId) {
+        logger.info("GET /incidents/{}/timeline called", incidentId);
+
+        return incidentTimelineService.getTimelineByIncidentId(incidentId);
     }
 
     @PostMapping("/{incidentId}/notes")

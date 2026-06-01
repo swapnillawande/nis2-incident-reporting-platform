@@ -16,6 +16,8 @@ public class IncidentMapperDto {
         response.setSeverity(incident.getSeverity());
         response.setStatus(incident.getStatus());
         response.setReportedByEmail(incident.getReportedByEmail());
+        response.setAssignedToEmail(incident.getAssignedToEmail());
+        response.setDueAt(incident.getDueAt());
         response.setCreatedAt(incident.getCreatedAt());
         response.setUpdatedAt(incident.getUpdatedAt());
 

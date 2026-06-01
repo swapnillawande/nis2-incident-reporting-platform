@@ -1,7 +1,13 @@
 package com.nisync.user.controller;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
+import com.nisync.common.response.PagedResponseDto;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,12 +17,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
 import com.nisync.user.dto.UserResponseDto;
+import com.nisync.user.enums.RoleName;
+import com.nisync.user.enums.UserStatus;
 import com.nisync.user.service.UserService;
 
 import jakarta.validation.Valid;
@@ -49,6 +58,21 @@ public class UserController {
 
         return response;
         
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponseDto createUser(
+            @Valid @RequestBody RegisterRequestDto request,
+            Authentication authentication) {
+
+        logger.info("POST /users called by {} for email: {}", authentication.getName(), request.getEmail());
+
+        UserResponseDto response = userService.createUser(request, authentication.getName());
+
+        logger.info("User created successfully by admin. userId: {}, email: {}", response.getId(), response.getEmail());
+
+        return response;
     }
     
     @PostMapping("/login")
@@ -90,10 +114,61 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<UserResponseDto> getAllUsers() {
-        logger.info("GET /users called");
+    public PagedResponseDto<UserResponseDto> getAllUsers(
+            @RequestParam(name = "status", required = false) UserStatus status,
+            @RequestParam(name = "role", required = false) RoleName role,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir) {
+        logger.info(
+                "GET /users called. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                status,
+                role,
+                query,
+                createdFrom,
+                createdTo,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
 
-        return userService.getAllUsers();
+        return userService.getAllUsers(status, role, query, createdFrom, createdTo, page, size, sortBy, sortDir);
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> exportUsers(
+            @RequestParam(name = "status", required = false) UserStatus status,
+            @RequestParam(name = "role", required = false) RoleName role,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            Authentication authentication) {
+        logger.info(
+                "GET /users/export called by {}. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}",
+                authentication.getName(),
+                status,
+                role,
+                query,
+                createdFrom,
+                createdTo
+        );
+
+        String csv = userService.exportUsersCsv(status, role, query, createdFrom, createdTo, authentication.getName());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=users-export.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
     }
 
     @GetMapping("/{userId}")

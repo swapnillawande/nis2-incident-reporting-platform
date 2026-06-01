@@ -1,10 +1,18 @@
 package com.nisync.user.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +21,7 @@ import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
@@ -46,39 +55,26 @@ public class UserServiceImpl implements UserService{
 	
 	@Override
 	public UserResponseDto register(RegisterRequestDto request) {
-		
         logger.info("Register request received for email: {}", request.getEmail());
-		
-        if (userRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Registration failed... Email already exists: {}", request.getEmail());
-            throw new DuplicateResourceException("Email already exists: " + request.getEmail());
-        }
 
-        AppUser user = new AppUser();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(UserStatus.ACTIVE);
+        return createUserRecord(
+				request,
+				"USER_REGISTERED",
+				request.getEmail(),
+				"User registered: "
+		);
+	}
 
-        Set<RoleName> roles = new HashSet<>();
-        roles.add(request.getRole());
-        user.setRoles(roles);
+	@Override
+	public UserResponseDto createUser(RegisterRequestDto request, String actorEmail) {
+		logger.info("Admin create user request received for email: {}, actor: {}", request.getEmail(), actorEmail);
 
-        AppUser savedUser = userRepository.save(user);
-
-        auditLogService.record(
-        		"USER_REGISTERED",
-        		"USER",
-        		savedUser.getId(),
-        		savedUser.getEmail(),
-        		"User registered: " + savedUser.getEmail()
-        );
-        
-        logger.info("User registered successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
-
-        return UserMapperDto.toResponse(savedUser);
-        
-        
+		return createUserRecord(
+				request,
+				"USER_CREATED",
+				actorEmail,
+				"User created: "
+		);
 	}
 	
 	@Override
@@ -160,13 +156,83 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public List<UserResponseDto> getAllUsers() {
-		logger.info("Fetching all users");
+	public PagedResponseDto<UserResponseDto> getAllUsers(
+			UserStatus status,
+			RoleName role,
+			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo,
+			int page,
+			int size,
+			String sortBy,
+			String sortDir) {
+		logger.info(
+				"Fetching users. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+				status,
+				role,
+				query,
+				createdFrom,
+				createdTo,
+				page,
+				size,
+				sortBy,
+				sortDir
+		);
 
-		return userRepository.findAll()
-				.stream()
-				.map(UserMapperDto::toResponse)
-				.toList();
+		Page<UserResponseDto> users = userRepository.findAll(
+				buildUserSpecification(status, role, query, createdFrom, createdTo),
+				PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
+		)
+				.map(UserMapperDto::toResponse);
+
+		return PagedResponseDto.fromPage(users);
+	}
+
+	@Override
+	public String exportUsersCsv(
+			UserStatus status,
+			RoleName role,
+			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo,
+			String actorEmail) {
+		logger.info(
+				"Exporting users to CSV. status: {}, role: {}, query: {}, createdFrom: {}, createdTo: {}, actor: {}",
+				status,
+				role,
+				query,
+				createdFrom,
+				createdTo,
+				actorEmail
+		);
+
+		List<AppUser> users = userRepository.findAll(
+				buildUserSpecification(status, role, query, createdFrom, createdTo),
+				Sort.by(Sort.Direction.DESC, "createdAt")
+		);
+
+		StringBuilder csv = new StringBuilder();
+		csv.append("ID,Full Name,Email,Status,Roles,Created At,Updated At\n");
+
+		users.forEach(user -> csv.append(toCsvRow(Arrays.asList(
+				user.getId(),
+				user.getFullName(),
+				user.getEmail(),
+				user.getStatus(),
+				formatRoles(user.getRoles()),
+				user.getCreatedAt(),
+				user.getUpdatedAt()
+		))));
+
+		auditLogService.record(
+				"USERS_EXPORTED",
+				"USER",
+				null,
+				actorEmail,
+				"Users exported to CSV. Count: " + users.size()
+		);
+
+		return csv.toString();
 	}
 
 	@Override
@@ -245,6 +311,152 @@ public class UserServiceImpl implements UserService{
 	public void deleteAllUsers() {
 		logger.warn("Deleting all users");
 		userRepository.deleteAll();
+	}
+
+	private Specification<AppUser> buildUserSpecification(
+			UserStatus status,
+			RoleName role,
+			String query,
+			LocalDateTime createdFrom,
+			LocalDateTime createdTo) {
+		return (root, criteriaQuery, criteriaBuilder) -> {
+			var predicate = criteriaBuilder.conjunction();
+
+			if (status != null) {
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+			}
+
+			if (role != null) {
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.isMember(role, root.get("roles")));
+			}
+
+			if (createdFrom != null) {
+				predicate = criteriaBuilder.and(
+						predicate,
+						criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom)
+				);
+			}
+
+			if (createdTo != null) {
+				predicate = criteriaBuilder.and(
+						predicate,
+						criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), createdTo)
+				);
+			}
+
+			if (query != null && !query.isBlank()) {
+				String searchTerm = "%" + query.trim().toLowerCase() + "%";
+				var fullNamePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), searchTerm);
+				var emailPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), searchTerm);
+				predicate = criteriaBuilder.and(predicate, criteriaBuilder.or(fullNamePredicate, emailPredicate));
+			}
+
+			return predicate;
+		};
+	}
+
+	private int normalizePage(int page) {
+		return Math.max(page, 0);
+	}
+
+	private int normalizeSize(int size) {
+		if (size < 1) {
+			return 10;
+		}
+
+		return Math.min(size, 100);
+	}
+
+	private Sort buildSort(String sortBy, String sortDir) {
+		String sortProperty = switch (normalizeSortKey(sortBy)) {
+			case "fullName" -> "fullName";
+			case "email" -> "email";
+			case "status" -> "status";
+			case "updatedAt" -> "updatedAt";
+			default -> "createdAt";
+		};
+		Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+		return Sort.by(direction, sortProperty);
+	}
+
+	private String normalizeSortKey(String sortBy) {
+		return sortBy == null ? "" : sortBy.trim();
+	}
+
+	private UserResponseDto createUserRecord(
+			RegisterRequestDto request,
+			String auditAction,
+			String actorEmail,
+			String auditDetailsPrefix) {
+
+		if (userRepository.existsByEmail(request.getEmail())) {
+			logger.warn("User create failed. Email already exists: {}", request.getEmail());
+			throw new DuplicateResourceException("Email already exists: " + request.getEmail());
+		}
+
+		AppUser user = new AppUser();
+		user.setFullName(request.getFullName());
+		user.setEmail(request.getEmail());
+		user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+		user.setStatus(UserStatus.ACTIVE);
+
+		Set<RoleName> roles = new HashSet<>();
+		roles.add(request.getRole());
+		user.setRoles(roles);
+
+		AppUser savedUser = userRepository.save(user);
+
+		auditLogService.record(
+				auditAction,
+				"USER",
+				savedUser.getId(),
+				actorEmail,
+				auditDetailsPrefix + savedUser.getEmail()
+		);
+
+		logger.info("User saved successfully. userId: {}, email: {}", savedUser.getId(), savedUser.getEmail());
+
+		return UserMapperDto.toResponse(savedUser);
+	}
+
+	private String toCsvRow(List<Object> values) {
+		return values.stream()
+				.map(this::escapeCsvValue)
+				.collect(Collectors.joining(",")) + "\n";
+	}
+
+	private String escapeCsvValue(Object value) {
+		String text = Objects.toString(formatCsvValue(value), "");
+		boolean needsQuotes = text.contains(",")
+				|| text.contains("\"")
+				|| text.contains("\n")
+				|| text.contains("\r");
+
+		if (!needsQuotes) {
+			return text;
+		}
+
+		return "\"" + text.replace("\"", "\"\"") + "\"";
+	}
+
+	private Object formatCsvValue(Object value) {
+		if (value instanceof LocalDateTime dateTime) {
+			return dateTime.toString();
+		}
+
+		return value;
+	}
+
+	private String formatRoles(Set<RoleName> roles) {
+		if (roles == null || roles.isEmpty()) {
+			return "";
+		}
+
+		return roles.stream()
+				.map(RoleName::name)
+				.sorted()
+				.collect(Collectors.joining(";"));
 	}
 
 }

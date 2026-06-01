@@ -1,6 +1,7 @@
 package com.nisync.incident.service.impl;
 
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentMapperDto;
@@ -15,10 +16,20 @@ import com.nisync.incident.service.IncidentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class IncidentServiceImpl implements IncidentService {
@@ -41,6 +52,8 @@ public class IncidentServiceImpl implements IncidentService {
         incident.setSeverity(request.getSeverity());
         incident.setStatus(IncidentStatus.OPEN);
         incident.setReportedByEmail(reportedByEmail);
+        incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
+        incident.setDueAt(request.getDueAt());
 
         Incident savedIncident = incidentRepository.save(incident);
 
@@ -58,13 +71,92 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponseDto> getIncidents(IncidentStatus status, IncidentSeverity severity, String query) {
-        logger.info("Fetching incidents. status: {}, severity: {}, query: {}", status, severity, query);
+    public PagedResponseDto<IncidentResponseDto> getIncidents(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String assignedToEmail,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        logger.info(
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
 
-        return incidentRepository.findAll(buildIncidentSpecification(status, severity, query))
-                .stream()
-                .map(IncidentMapperDto::toResponse)
-                .toList();
+        Page<IncidentResponseDto> incidents = incidentRepository.findAll(
+                        buildIncidentSpecification(
+                                status,
+                                severity,
+                                assignedToEmail,
+                                query,
+                                createdFrom,
+                                createdTo,
+                                dueFrom,
+                                dueTo
+                        ),
+                        PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
+                )
+                .map(IncidentMapperDto::toResponse);
+
+        return PagedResponseDto.fromPage(incidents);
+    }
+
+    @Override
+    public String exportIncidentsCsv(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String assignedToEmail,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo,
+            String actorEmail) {
+
+        logger.info(
+                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, query: {}, createdFrom: {}, createdTo: {}, dueFrom: {}, dueTo: {}, actor: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                createdFrom,
+                createdTo,
+                dueFrom,
+                dueTo,
+                actorEmail
+        );
+
+        List<Incident> incidents = incidentRepository.findAll(
+                buildIncidentSpecification(status, severity, assignedToEmail, query, createdFrom, createdTo, dueFrom, dueTo),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        auditLogService.record(
+                "INCIDENTS_EXPORTED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents exported to CSV. Count: " + incidents.size()
+        );
+
+        return buildIncidentCsv(incidents);
     }
 
     @Override
@@ -98,6 +190,16 @@ public class IncidentServiceImpl implements IncidentService {
             incident.setStatus(request.getStatus());
         }
 
+        if (request.getAssignedToEmail() != null) {
+            incident.setAssignedToEmail(normalizeEmail(request.getAssignedToEmail()));
+        }
+
+        if (Boolean.TRUE.equals(request.getClearDueAt())) {
+            incident.setDueAt(null);
+        } else if (request.getDueAt() != null) {
+            incident.setDueAt(request.getDueAt());
+        }
+
         Incident savedIncident = incidentRepository.save(incident);
 
         auditLogService.record(
@@ -111,6 +213,98 @@ public class IncidentServiceImpl implements IncidentService {
         logger.info("Incident updated successfully. incidentId: {}", savedIncident.getId());
 
         return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
+    public IncidentResponseDto assignIncident(Long incidentId, String assignedToEmail, String actorEmail) {
+        String normalizedAssignedToEmail = normalizeEmail(assignedToEmail);
+
+        logger.info(
+                "Assigning incident by id: {} to {} by {}",
+                incidentId,
+                normalizedAssignedToEmail,
+                actorEmail
+        );
+
+        Incident incident = findIncidentOrThrow(incidentId);
+        incident.setAssignedToEmail(normalizedAssignedToEmail);
+
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.record(
+                "INCIDENT_ASSIGNED",
+                "INCIDENT",
+                savedIncident.getId(),
+                actorEmail,
+                "Incident assigned to " + normalizedAssignedToEmail + ": " + savedIncident.getTitle()
+        );
+
+        return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
+    public IncidentResponseDto unassignIncident(Long incidentId, String actorEmail) {
+        logger.info("Unassigning incident by id: {} by {}", incidentId, actorEmail);
+
+        Incident incident = findIncidentOrThrow(incidentId);
+        incident.setAssignedToEmail(null);
+
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.record(
+                "INCIDENT_UNASSIGNED",
+                "INCIDENT",
+                savedIncident.getId(),
+                actorEmail,
+                "Incident unassigned: " + savedIncident.getTitle()
+        );
+
+        return IncidentMapperDto.toResponse(savedIncident);
+    }
+
+    @Override
+    public List<IncidentResponseDto> bulkUpdateStatus(
+            List<Long> incidentIds,
+            IncidentStatus status,
+            String actorEmail) {
+
+        logger.info("Bulk updating incident status. count: {}, status: {}, actor: {}", incidentIds.size(), status, actorEmail);
+
+        List<Long> distinctIncidentIds = incidentIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<Incident> incidents = incidentRepository.findAllById(distinctIncidentIds);
+        Set<Long> foundIncidentIds = incidents.stream()
+                .map(Incident::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+        List<Long> missingIncidentIds = distinctIncidentIds.stream()
+                .filter(incidentId -> !foundIncidentIds.contains(incidentId))
+                .toList();
+
+        if (!missingIncidentIds.isEmpty()) {
+            logger.warn("Bulk status update failed. Missing incident ids: {}", missingIncidentIds);
+            throw new ResourceNotFoundException("Incidents not found with ids: " + missingIncidentIds);
+        }
+
+        incidents.forEach(incident -> incident.setStatus(status));
+
+        List<Incident> savedIncidents = new ArrayList<>();
+        incidentRepository.saveAll(incidents).forEach(savedIncidents::add);
+
+        auditLogService.record(
+                "INCIDENTS_BULK_STATUS_UPDATED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents status updated to " + status + ". Count: " + savedIncidents.size()
+        );
+
+        logger.info("Bulk incident status update completed. count: {}, status: {}", savedIncidents.size(), status);
+
+        return savedIncidents.stream()
+                .map(IncidentMapperDto::toResponse)
+                .toList();
     }
 
     @Override
@@ -143,10 +337,23 @@ public class IncidentServiceImpl implements IncidentService {
                 });
     }
 
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+
+        return email.trim();
+    }
+
     private Specification<Incident> buildIncidentSpecification(
             IncidentStatus status,
             IncidentSeverity severity,
-            String query) {
+            String assignedToEmail,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime dueFrom,
+            LocalDateTime dueTo) {
 
         return (root, criteriaQuery, criteriaBuilder) -> {
             var predicate = criteriaBuilder.conjunction();
@@ -159,6 +366,44 @@ public class IncidentServiceImpl implements IncidentService {
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("severity"), severity));
             }
 
+            if (assignedToEmail != null && !assignedToEmail.isBlank()) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.equal(
+                                criteriaBuilder.lower(root.get("assignedToEmail")),
+                                assignedToEmail.trim().toLowerCase()
+                        )
+                );
+            }
+
+            if (createdFrom != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom)
+                );
+            }
+
+            if (createdTo != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), createdTo)
+                );
+            }
+
+            if (dueFrom != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("dueAt"), dueFrom)
+                );
+            }
+
+            if (dueTo != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.lessThanOrEqualTo(root.get("dueAt"), dueTo)
+                );
+            }
+
             if (query != null && !query.isBlank()) {
                 String searchTerm = "%" + query.trim().toLowerCase() + "%";
                 var titlePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), searchTerm);
@@ -166,13 +411,93 @@ public class IncidentServiceImpl implements IncidentService {
                         criteriaBuilder.lower(root.get("description")),
                         searchTerm
                 );
+                var assignedToPredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("assignedToEmail")),
+                        searchTerm
+                );
                 predicate = criteriaBuilder.and(
                         predicate,
-                        criteriaBuilder.or(titlePredicate, descriptionPredicate)
+                        criteriaBuilder.or(titlePredicate, descriptionPredicate, assignedToPredicate)
                 );
             }
 
             return predicate;
         };
+    }
+
+    private int normalizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int normalizeSize(int size) {
+        if (size < 1) {
+            return 10;
+        }
+
+        return Math.min(size, 100);
+    }
+
+    private Sort buildSort(String sortBy, String sortDir) {
+        String sortProperty = switch (normalizeSortKey(sortBy)) {
+            case "title" -> "title";
+            case "severity" -> "severity";
+            case "status" -> "status";
+            case "reportedByEmail" -> "reportedByEmail";
+            case "assignedToEmail" -> "assignedToEmail";
+            case "dueAt" -> "dueAt";
+            default -> "createdAt";
+        };
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        return Sort.by(direction, sortProperty);
+    }
+
+    private String normalizeSortKey(String sortBy) {
+        return sortBy == null ? "" : sortBy.trim();
+    }
+
+    private String buildIncidentCsv(List<Incident> incidents) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("ID,Title,Description,Severity,Status,Reported By,Assigned To,SLA Due,Created At,Updated At\n");
+
+        incidents.forEach(incident -> csv.append(toCsvRow(Arrays.asList(
+                incident.getId(),
+                incident.getTitle(),
+                incident.getDescription(),
+                incident.getSeverity(),
+                incident.getStatus(),
+                incident.getReportedByEmail(),
+                incident.getAssignedToEmail(),
+                incident.getDueAt(),
+                incident.getCreatedAt(),
+                incident.getUpdatedAt()
+        ))).append("\n"));
+
+        return csv.toString();
+    }
+
+    private String toCsvRow(List<Object> values) {
+        return values.stream()
+                .map(this::escapeCsvValue)
+                .collect(Collectors.joining(","));
+    }
+
+    private String escapeCsvValue(Object value) {
+        String text = Objects.toString(formatCsvValue(value), "");
+        boolean needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r");
+
+        if (!needsQuotes) {
+            return text;
+        }
+
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
+    private Object formatCsvValue(Object value) {
+        if (value instanceof LocalDateTime dateTime) {
+            return dateTime.toString();
+        }
+
+        return value;
     }
 }

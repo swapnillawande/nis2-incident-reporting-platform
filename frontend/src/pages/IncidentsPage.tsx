@@ -1,29 +1,107 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "../components/PaginationControls";
+import SavedViewControls from "../components/SavedViewControls";
+import SortControls from "../components/SortControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
+  assignIncidentToMe,
+  bulkUpdateIncidentStatus,
   createIncident,
   deleteIncident,
+  exportIncidentsCsv,
   getAllIncidents,
-  getIncidentNotes,
+  getIncidentTimeline,
+  unassignIncident,
   updateIncident,
 } from "../api/incidentApi";
+import {
+  createSavedView,
+  deleteSavedView,
+  getSavedViews,
+} from "../api/savedViewApi";
 import type {
   CreateIncidentRequest,
   IncidentResponse,
-  IncidentNote,
+  IncidentTimelineItem,
   IncidentSeverity,
   IncidentStatus,
   UpdateIncidentRequest,
 } from "../types/incident";
+import type { SortDirection } from "../types/pagination";
+import type { SavedViewResponse } from "../types/savedView";
 
 const SEVERITY_OPTIONS: IncidentSeverity[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUS_OPTIONS: IncidentStatus[] = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const INCIDENT_SORT_OPTIONS = [
+  { label: "Created", value: "createdAt" },
+  { label: "Title", value: "title" },
+  { label: "Severity", value: "severity" },
+  { label: "Status", value: "status" },
+  { label: "SLA Due", value: "dueAt" },
+  { label: "Assigned To", value: "assignedToEmail" },
+];
 
 const emptyCreateForm: CreateIncidentRequest = {
   title: "",
   description: "",
   severity: "MEDIUM",
+  assignedToEmail: "",
+  dueAt: "",
+};
+
+const toDateTimeLocalValue = (dateTime?: string | null) => {
+  if (!dateTime) {
+    return "";
+  }
+
+  return dateTime.slice(0, 16);
+};
+
+const formatDueAt = (dateTime?: string | null) => {
+  if (!dateTime) {
+    return "No SLA";
+  }
+
+  return new Date(dateTime).toLocaleString();
+};
+
+const formatReportedAt = (dateTime: string) => new Date(dateTime).toLocaleString();
+
+const formatTimelineAction = (action?: string | null) => {
+  if (!action) {
+    return "Activity";
+  }
+
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const getDueStatus = (incident: IncidentResponse) => {
+  if (!incident.dueAt) {
+    return "No SLA";
+  }
+
+  if (["RESOLVED", "CLOSED"].includes(incident.status)) {
+    return "Completed";
+  }
+
+  const dueAtTime = new Date(incident.dueAt).getTime();
+  const now = Date.now();
+  const dayInMilliseconds = 24 * 60 * 60 * 1000;
+
+  if (dueAtTime < now) {
+    return "Overdue";
+  }
+
+  if (dueAtTime - now <= dayInMilliseconds) {
+    return "Due Soon";
+  }
+
+  return "On Track";
 };
 
 function IncidentsPage() {
@@ -33,15 +111,36 @@ function IncidentsPage() {
   const [editForm, setEditForm] = useState<UpdateIncidentRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [assignmentUpdatingId, setAssignmentUpdatingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<IncidentSeverity | "">("");
+  const [assignedToFilter, setAssignedToFilter] = useState("");
   const [queryFilter, setQueryFilter] = useState("");
-  const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
+  const [dueFromFilter, setDueFromFilter] = useState("");
+  const [dueToFilter, setDueToFilter] = useState("");
+  const [incidentTimeline, setIncidentTimeline] = useState<IncidentTimelineItem[]>([]);
   const [newNote, setNewNote] = useState("");
-  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [selectedIncidentIds, setSelectedIncidentIds] = useState<Set<number>>(
+    () => new Set()
+  );
+  const [bulkStatus, setBulkStatus] = useState<IncidentStatus>("IN_PROGRESS");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalIncidents, setTotalIncidents] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [savedViews, setSavedViews] = useState<SavedViewResponse[]>([]);
+  const [savedViewName, setSavedViewName] = useState("");
+  const [isSavingView, setIsSavingView] = useState(false);
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -51,13 +150,31 @@ function IncidentsPage() {
   const canDelete = currentUser?.roles?.some((role: string) =>
     ["ADMIN", "SECURITY_ANALYST"].includes(role)
   );
+  const visibleIncidentIds = useMemo(
+    () => incidents.map((incident) => incident.id),
+    [incidents]
+  );
+  const selectedVisibleCount = visibleIncidentIds.filter((incidentId) =>
+    selectedIncidentIds.has(incidentId)
+  ).length;
+  const allVisibleSelected =
+    visibleIncidentIds.length > 0 && selectedVisibleCount === visibleIncidentIds.length;
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
     setMessageType(type);
   };
 
-  const loadIncidents = async () => {
+  useEffect(() => {
+    getSavedViews("INCIDENTS")
+      .then(setSavedViews)
+      .catch((error: unknown) => {
+        setMessage(getApiErrorMessage(error, "Failed to load saved views"));
+        setMessageType("error");
+      });
+  }, []);
+
+  const loadIncidents = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
     setMessage("");
     setMessageType("");
@@ -66,9 +183,23 @@ function IncidentsPage() {
       const response = await getAllIncidents({
         status: statusFilter,
         severity: severityFilter,
+        assignedToEmail: assignedToFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
+        dueFrom: dueFromFilter,
+        dueTo: dueToFilter,
+        page: targetPage,
+        size: targetSize,
+        sortBy,
+        sortDir,
       });
-      setIncidents(response);
+      setIncidents(response.content);
+      setPage(response.page);
+      setPageSize(response.size);
+      setTotalIncidents(response.totalElements);
+      setTotalPages(response.totalPages);
+      setSelectedIncidentIds(new Set());
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
     } finally {
@@ -79,11 +210,25 @@ function IncidentsPage() {
   useEffect(() => {
     getAllIncidents({
       status: statusFilter,
-      severity: severityFilter,
-      query: queryFilter,
-    })
+        severity: severityFilter,
+        assignedToEmail: assignedToFilter,
+        query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
+        dueFrom: dueFromFilter,
+        dueTo: dueToFilter,
+        page,
+        size: pageSize,
+        sortBy,
+        sortDir,
+      })
       .then((response) => {
-        setIncidents(response);
+        setIncidents(response.content);
+        setPage(response.page);
+        setPageSize(response.size);
+        setTotalIncidents(response.totalElements);
+        setTotalPages(response.totalPages);
+        setSelectedIncidentIds(new Set());
       })
       .catch((error: unknown) => {
         showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
@@ -91,7 +236,20 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter, queryFilter]);
+  }, [
+    statusFilter,
+    severityFilter,
+    assignedToFilter,
+    queryFilter,
+    createdFromFilter,
+    createdToFilter,
+    dueFromFilter,
+    dueToFilter,
+    page,
+    pageSize,
+    sortBy,
+    sortDir,
+  ]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -101,22 +259,39 @@ function IncidentsPage() {
       const response = await createIncident(createForm);
       const matchesStatus = !statusFilter || response.status === statusFilter;
       const matchesSeverity = !severityFilter || response.severity === severityFilter;
+      const matchesAssignee =
+        !assignedToFilter.trim() ||
+        response.assignedToEmail?.toLowerCase() === assignedToFilter.trim().toLowerCase();
       const normalizedQuery = queryFilter.trim().toLowerCase();
       const matchesQuery =
         !normalizedQuery ||
         response.title.toLowerCase().includes(normalizedQuery) ||
-        response.description.toLowerCase().includes(normalizedQuery);
-
-      if (matchesStatus && matchesSeverity && matchesQuery) {
-        setIncidents((currentIncidents) => [response, ...currentIncidents]);
-      }
+        response.description.toLowerCase().includes(normalizedQuery) ||
+        (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false) ||
+        (response.dueAt ? formatDueAt(response.dueAt).toLowerCase().includes(normalizedQuery) : false);
 
       setCreateForm(emptyCreateForm);
+      if (matchesStatus && matchesSeverity && matchesAssignee && matchesQuery) {
+        await loadIncidents(0, pageSize);
+      }
       showMessage("Incident created successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to create incident"), "error");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const loadIncidentTimeline = async (incidentId: number) => {
+    setIsLoadingTimeline(true);
+
+    try {
+      const response = await getIncidentTimeline(incidentId);
+      setIncidentTimeline(response);
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to load incident timeline"), "error");
+    } finally {
+      setIsLoadingTimeline(false);
     }
   };
 
@@ -127,25 +302,18 @@ function IncidentsPage() {
       description: incident.description,
       severity: incident.severity,
       status: incident.status,
+      assignedToEmail: incident.assignedToEmail ?? "",
+      dueAt: toDateTimeLocalValue(incident.dueAt),
     });
-    setIncidentNotes([]);
+    setIncidentTimeline([]);
     setNewNote("");
-    setIsLoadingNotes(true);
-
-    try {
-      const response = await getIncidentNotes(incident.id);
-      setIncidentNotes(response);
-    } catch (error: unknown) {
-      showMessage(getApiErrorMessage(error, "Failed to load incident notes"), "error");
-    } finally {
-      setIsLoadingNotes(false);
-    }
+    await loadIncidentTimeline(incident.id);
   };
 
   const closeEdit = () => {
     setSelectedIncident(null);
     setEditForm(null);
-    setIncidentNotes([]);
+    setIncidentTimeline([]);
     setNewNote("");
   };
 
@@ -155,13 +323,9 @@ function IncidentsPage() {
     }
 
     try {
-      const response = await updateIncident(selectedIncident.id, editForm);
-      setIncidents((currentIncidents) =>
-        currentIncidents.map((incident) =>
-          incident.id === response.id ? response : incident
-        )
-      );
+      await updateIncident(selectedIncident.id, editForm);
       closeEdit();
+      await loadIncidents(page, pageSize);
       showMessage("Incident updated successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to update incident"), "error");
@@ -177,9 +341,8 @@ function IncidentsPage() {
 
     try {
       await deleteIncident(incident.id);
-      setIncidents((currentIncidents) =>
-        currentIncidents.filter((currentIncident) => currentIncident.id !== incident.id)
-      );
+      const nextPage = incidents.length === 1 && page > 0 ? page - 1 : page;
+      await loadIncidents(nextPage, pageSize);
       showMessage("Incident deleted successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to delete incident"), "error");
@@ -194,16 +357,199 @@ function IncidentsPage() {
     setIsAddingNote(true);
 
     try {
-      const response = await addIncidentNote(selectedIncident.id, {
+      await addIncidentNote(selectedIncident.id, {
         note: newNote.trim(),
       });
-      setIncidentNotes((currentNotes) => [response, ...currentNotes]);
+      await loadIncidentTimeline(selectedIncident.id);
       setNewNote("");
       showMessage("Incident note added", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to add incident note"), "error");
     } finally {
       setIsAddingNote(false);
+    }
+  };
+
+  const toggleIncidentSelection = (incidentId: number) => {
+    setSelectedIncidentIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+
+      if (nextIds.has(incidentId)) {
+        nextIds.delete(incidentId);
+      } else {
+        nextIds.add(incidentId);
+      }
+
+      return nextIds;
+    });
+  };
+
+  const toggleAllVisibleIncidents = () => {
+    setSelectedIncidentIds((currentIds) => {
+      if (allVisibleSelected) {
+        return new Set(
+          Array.from(currentIds).filter((incidentId) => !visibleIncidentIds.includes(incidentId))
+        );
+      }
+
+      return new Set([...Array.from(currentIds), ...visibleIncidentIds]);
+    });
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    const incidentIds = Array.from(selectedIncidentIds);
+
+    if (incidentIds.length === 0) {
+      return;
+    }
+
+    setIsBulkUpdating(true);
+
+    try {
+      const updatedIncidents = await bulkUpdateIncidentStatus({
+        incidentIds,
+        status: bulkStatus,
+      });
+      await loadIncidents(page, pageSize);
+      setSelectedIncidentIds(new Set());
+      showMessage(`${updatedIncidents.length} incidents updated to ${bulkStatus.replace("_", " ")}`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to update selected incidents"), "error");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleAssignToMe = async (incident: IncidentResponse) => {
+    if (!currentUser?.email) {
+      showMessage("Current user email is not available", "error");
+      return;
+    }
+
+    setAssignmentUpdatingId(incident.id);
+
+    try {
+      await assignIncidentToMe(incident.id);
+      await loadIncidents(page, pageSize);
+      showMessage(`Incident assigned to ${currentUser.email}`, "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to assign incident"), "error");
+    } finally {
+      setAssignmentUpdatingId(null);
+    }
+  };
+
+  const handleUnassign = async (incident: IncidentResponse) => {
+    setAssignmentUpdatingId(incident.id);
+
+    try {
+      await unassignIncident(incident.id);
+      await loadIncidents(page, pageSize);
+      showMessage("Incident unassigned", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to unassign incident"), "error");
+    } finally {
+      setAssignmentUpdatingId(null);
+    }
+  };
+
+  const buildSavedViewFilterJson = () =>
+    JSON.stringify({
+      statusFilter,
+      severityFilter,
+      assignedToFilter,
+      queryFilter,
+      createdFromFilter,
+      createdToFilter,
+      dueFromFilter,
+      dueToFilter,
+      sortBy,
+      sortDir,
+      pageSize,
+    });
+
+  const handleSaveView = async () => {
+    if (!savedViewName.trim()) {
+      return;
+    }
+
+    setIsSavingView(true);
+
+    try {
+      const savedView = await createSavedView({
+        viewType: "INCIDENTS",
+        name: savedViewName,
+        filterJson: buildSavedViewFilterJson(),
+      });
+      setSavedViews((currentSavedViews) => [savedView, ...currentSavedViews]);
+      setSavedViewName("");
+      showMessage("Saved view created", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to save view"), "error");
+    } finally {
+      setIsSavingView(false);
+    }
+  };
+
+  const handleApplySavedView = (savedView: SavedViewResponse) => {
+    try {
+      const filters = JSON.parse(savedView.filterJson) as Record<string, string | number>;
+
+      setStatusFilter((filters.statusFilter as IncidentStatus | "") ?? "");
+      setSeverityFilter((filters.severityFilter as IncidentSeverity | "") ?? "");
+      setAssignedToFilter(String(filters.assignedToFilter ?? ""));
+      setQueryFilter(String(filters.queryFilter ?? ""));
+      setCreatedFromFilter(String(filters.createdFromFilter ?? ""));
+      setCreatedToFilter(String(filters.createdToFilter ?? ""));
+      setDueFromFilter(String(filters.dueFromFilter ?? ""));
+      setDueToFilter(String(filters.dueToFilter ?? ""));
+      setSortBy(String(filters.sortBy ?? "createdAt"));
+      setSortDir((filters.sortDir as SortDirection) ?? "desc");
+      setPageSize(Number(filters.pageSize ?? 10));
+      setPage(0);
+      showMessage(`Applied saved view: ${savedView.name}`, "success");
+    } catch {
+      showMessage("Saved view could not be applied", "error");
+    }
+  };
+
+  const handleDeleteSavedView = async (savedView: SavedViewResponse) => {
+    try {
+      await deleteSavedView(savedView.id);
+      setSavedViews((currentSavedViews) =>
+        currentSavedViews.filter((item) => item.id !== savedView.id)
+      );
+      showMessage("Saved view deleted", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to delete saved view"), "error");
+    }
+  };
+
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+
+    try {
+      const csvBlob = await exportIncidentsCsv({
+        status: statusFilter,
+        severity: severityFilter,
+        assignedToEmail: assignedToFilter,
+        query: queryFilter,
+      });
+      const downloadUrl = URL.createObjectURL(csvBlob);
+      const downloadLink = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `incidents-export-${timestamp}.csv`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(downloadUrl);
+      showMessage("Incident CSV exported", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to export incidents"), "error");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -218,19 +564,38 @@ function IncidentsPage() {
           </p>
         </div>
 
-        <button className="btn-secondary" onClick={loadIncidents} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="page-header-actions">
+          <button className="btn-secondary" onClick={handleExportCsv} disabled={isExporting}>
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+          <button className="btn-secondary" onClick={() => loadIncidents()} disabled={isLoading}>
+            Refresh
+          </button>
+        </div>
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
+
+      <SavedViewControls
+        savedViews={savedViews}
+        saveName={savedViewName}
+        isSaving={isSavingView}
+        placeholder="Open incidents this week"
+        onApply={handleApplySavedView}
+        onDelete={handleDeleteSavedView}
+        onNameChange={setSavedViewName}
+        onSave={handleSaveView}
+      />
 
       <section className="filter-bar">
         <div className="filter-group">
           <label>Search</label>
           <input
             value={queryFilter}
-            onChange={(event) => setQueryFilter(event.target.value)}
+            onChange={(event) => {
+              setQueryFilter(event.target.value);
+              setPage(0);
+            }}
             placeholder="Search title or description"
           />
         </div>
@@ -239,7 +604,10 @@ function IncidentsPage() {
           <label>Status</label>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as IncidentStatus | "")}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as IncidentStatus | "");
+              setPage(0);
+            }}
           >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((status) => (
@@ -254,9 +622,10 @@ function IncidentsPage() {
           <label>Severity</label>
           <select
             value={severityFilter}
-            onChange={(event) =>
-              setSeverityFilter(event.target.value as IncidentSeverity | "")
-            }
+            onChange={(event) => {
+              setSeverityFilter(event.target.value as IncidentSeverity | "");
+              setPage(0);
+            }}
           >
             <option value="">All severities</option>
             {SEVERITY_OPTIONS.map((severity) => (
@@ -273,12 +642,154 @@ function IncidentsPage() {
             setQueryFilter("");
             setStatusFilter("");
             setSeverityFilter("");
+            setAssignedToFilter("");
+            setCreatedFromFilter("");
+            setCreatedToFilter("");
+            setDueFromFilter("");
+            setDueToFilter("");
+            setPage(0);
           }}
-          disabled={!queryFilter && !statusFilter && !severityFilter}
+          disabled={
+            !queryFilter &&
+            !statusFilter &&
+            !severityFilter &&
+            !assignedToFilter &&
+            !createdFromFilter &&
+            !createdToFilter &&
+            !dueFromFilter &&
+            !dueToFilter
+          }
         >
           Clear Filters
         </button>
       </section>
+
+      <section className="filter-bar incident-assignee-bar">
+        <div className="filter-group">
+          <label>Assigned To</label>
+          <input
+            type="email"
+            value={assignedToFilter}
+            onChange={(event) => {
+              setAssignedToFilter(event.target.value);
+              setPage(0);
+            }}
+            placeholder="analyst@nis2.com"
+          />
+        </div>
+
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setAssignedToFilter(currentUser?.email ?? "");
+            setPage(0);
+          }}
+          disabled={!currentUser?.email}
+        >
+          Mine
+        </button>
+      </section>
+
+      <section className="filter-bar date-filter-bar">
+        <div className="filter-group">
+          <label>Created From</label>
+          <input
+            type="datetime-local"
+            value={createdFromFilter}
+            onChange={(event) => {
+              setCreatedFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>Created To</label>
+          <input
+            type="datetime-local"
+            value={createdToFilter}
+            onChange={(event) => {
+              setCreatedToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>SLA From</label>
+          <input
+            type="datetime-local"
+            value={dueFromFilter}
+            onChange={(event) => {
+              setDueFromFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <div className="filter-group">
+          <label>SLA To</label>
+          <input
+            type="datetime-local"
+            value={dueToFilter}
+            onChange={(event) => {
+              setDueToFilter(event.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+      </section>
+
+      <section className="sort-bar">
+        <SortControls
+          options={INCIDENT_SORT_OPTIONS}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSortByChange={(nextSortBy) => {
+            setSortBy(nextSortBy);
+            setPage(0);
+          }}
+          onSortDirChange={(nextSortDir) => {
+            setSortDir(nextSortDir);
+            setPage(0);
+          }}
+        />
+      </section>
+
+      <section className="bulk-action-bar">
+        <div>
+          <span className="bulk-action-count">{selectedIncidentIds.size}</span>
+          <span className="text-muted"> selected for bulk triage</span>
+        </div>
+
+        <div className="bulk-action-controls">
+          <select
+            value={bulkStatus}
+            onChange={(event) => setBulkStatus(event.target.value as IncidentStatus)}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+
+          <button
+            className="btn-secondary"
+            onClick={handleBulkStatusUpdate}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            {isBulkUpdating ? "Updating..." : "Update Status"}
+          </button>
+
+          <button
+            className="btn-secondary"
+            onClick={() => setSelectedIncidentIds(new Set())}
+            disabled={selectedIncidentIds.size === 0 || isBulkUpdating}
+          >
+            Clear
+          </button>
+        </div>
+      </section>
+
       <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50 dark:!from-slate-900 dark:!via-slate-900 dark:!to-slate-800 dark:!border-slate-700">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -322,6 +833,29 @@ function IncidentsPage() {
             </select>
           </div>
 
+          <div className="form-group">
+            <label>Assigned To</label>
+            <input
+              type="email"
+              value={createForm.assignedToEmail ?? ""}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, assignedToEmail: event.target.value })
+              }
+              placeholder="analyst@nis2.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>SLA Due</label>
+            <input
+              type="datetime-local"
+              value={createForm.dueAt ?? ""}
+              onChange={(event) =>
+                setCreateForm({ ...createForm, dueAt: event.target.value })
+              }
+            />
+          </div>
+
           <div className="form-group span-2">
             <label>Description</label>
             <textarea
@@ -353,16 +887,37 @@ function IncidentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th className="select-column">
+                    <input
+                      aria-label="Select all visible incidents"
+                      checked={allVisibleSelected}
+                      className="table-checkbox"
+                      onChange={toggleAllVisibleIncidents}
+                      type="checkbox"
+                    />
+                  </th>
                   <th>Title</th>
                   <th>Severity</th>
                   <th>Status</th>
                   <th>Reported By</th>
+                  <th>Reported</th>
+                  <th>Assigned To</th>
+                  <th>SLA Due</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {incidents.map((incident) => (
                   <tr key={incident.id}>
+                    <td className="select-column">
+                      <input
+                        aria-label={`Select ${incident.title}`}
+                        checked={selectedIncidentIds.has(incident.id)}
+                        className="table-checkbox"
+                        onChange={() => toggleIncidentSelection(incident.id)}
+                        type="checkbox"
+                      />
+                    </td>
                     <td>
                       <strong>{incident.title}</strong>
                       <span className="table-description">{incident.description}</span>
@@ -378,6 +933,37 @@ function IncidentsPage() {
                       </span>
                     </td>
                     <td>{incident.reportedByEmail}</td>
+                    <td>{formatReportedAt(incident.createdAt)}</td>
+                    <td>
+                      <div className="assignment-cell">
+                        <span>{incident.assignedToEmail || "Unassigned"}</span>
+                        <div className="assignment-actions">
+                          {incident.assignedToEmail ? (
+                            <button
+                              className="btn-secondary compact"
+                              disabled={assignmentUpdatingId === incident.id}
+                              onClick={() => handleUnassign(incident)}
+                            >
+                              {assignmentUpdatingId === incident.id ? "Updating..." : "Unassign"}
+                            </button>
+                          ) : (
+                            <button
+                              className="btn-secondary compact"
+                              disabled={!currentUser?.email || assignmentUpdatingId === incident.id}
+                              onClick={() => handleAssignToMe(incident)}
+                            >
+                              {assignmentUpdatingId === incident.id ? "Updating..." : "Assign me"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`sla-pill sla-${getDueStatus(incident).toLowerCase().replaceAll(" ", "-")}`}>
+                        {getDueStatus(incident)}
+                      </span>
+                      <span className="table-description">{formatDueAt(incident.dueAt)}</span>
+                    </td>
                     <td>
                       <div className="table-actions">
                         <button className="btn-secondary compact" onClick={() => openEdit(incident)}>
@@ -399,6 +985,18 @@ function IncidentsPage() {
             </table>
           </div>
         )}
+        <PaginationControls
+          page={page}
+          size={pageSize}
+          totalElements={totalIncidents}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(0);
+          }}
+        />
       </section>
 
       {selectedIncident && editForm && (
@@ -463,6 +1061,29 @@ function IncidentsPage() {
                 </select>
               </div>
 
+              <div className="form-group">
+                <label>Assigned To</label>
+                <input
+                  type="email"
+                  value={editForm.assignedToEmail ?? ""}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, assignedToEmail: event.target.value })
+                  }
+                  placeholder="analyst@nis2.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>SLA Due</label>
+                <input
+                  type="datetime-local"
+                  value={editForm.dueAt ?? ""}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, dueAt: event.target.value })
+                  }
+                />
+              </div>
+
               <div className="form-group span-2">
                 <label>Description</label>
                 <textarea
@@ -484,7 +1105,7 @@ function IncidentsPage() {
             </div>
 
             <section className="notes-panel">
-              <h3>Timeline Notes</h3>
+              <h3>Activity Timeline</h3>
 
               <div className="note-composer">
                 <textarea
@@ -501,17 +1122,26 @@ function IncidentsPage() {
                 </button>
               </div>
 
-              {isLoadingNotes ? (
-                <p className="text-muted">Loading notes...</p>
-              ) : incidentNotes.length === 0 ? (
-                <p className="text-muted">No timeline notes yet.</p>
+              {isLoadingTimeline ? (
+                <p className="text-muted">Loading activity...</p>
+              ) : incidentTimeline.length === 0 ? (
+                <p className="text-muted">No activity yet.</p>
               ) : (
                 <div className="notes-list">
-                  {incidentNotes.map((note) => (
-                    <article className="note-item" key={note.id}>
-                      <p>{note.note}</p>
+                  {incidentTimeline.map((item) => (
+                    <article
+                      className={`timeline-item ${item.type === "NOTE" ? "timeline-note" : "timeline-audit"}`}
+                      key={`${item.type}-${item.id}`}
+                    >
+                      <div className="timeline-item-header">
+                        <span className="timeline-type">
+                          {item.type === "NOTE" ? "Note" : formatTimelineAction(item.action)}
+                        </span>
+                        <span>{new Date(item.createdAt).toLocaleString()}</span>
+                      </div>
+                      <p>{item.type === "NOTE" ? item.note : item.details}</p>
                       <span>
-                        {note.createdByEmail} · {new Date(note.createdAt).toLocaleString()}
+                        {item.actorEmail || "System"}
                       </span>
                     </article>
                   ))}
