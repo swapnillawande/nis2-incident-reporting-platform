@@ -8,6 +8,7 @@ import type {
   IncidentResponse,
   IncidentSeverity,
   IncidentStatus,
+  IncidentTimelineItem,
   UpdateIncidentRequest,
 } from "../types/incident";
 import type { PagedResponse, PaginationParams } from "../types/pagination";
@@ -144,6 +145,16 @@ export const getIncidentNotes = async (
   incidentId: number
 ): Promise<IncidentNote[]> => {
   const response = await axios.get(`${API_BASE_URL}/incidents/${incidentId}/notes`, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+};
+
+export const getIncidentTimeline = async (
+  incidentId: number
+): Promise<IncidentTimelineItem[]> => {
+  const response = await axios.get(`${API_BASE_URL}/incidents/${incidentId}/timeline`, {
     headers: getAuthHeader(),
   });
 

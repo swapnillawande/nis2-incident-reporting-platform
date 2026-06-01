@@ -49,3 +49,15 @@ export interface IncidentNote {
 export interface CreateIncidentNoteRequest {
   note: string;
 }
+
+export type IncidentTimelineItemType = "NOTE" | "AUDIT";
+
+export interface IncidentTimelineItem {
+  type: IncidentTimelineItemType;
+  id: number;
+  action: string | null;
+  actorEmail: string;
+  details: string | null;
+  note: string | null;
+  createdAt: string;
+}

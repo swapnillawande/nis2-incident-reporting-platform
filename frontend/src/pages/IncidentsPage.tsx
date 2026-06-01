@@ -10,7 +10,7 @@ import {
   deleteIncident,
   exportIncidentsCsv,
   getAllIncidents,
-  getIncidentNotes,
+  getIncidentTimeline,
   updateIncident,
 } from "../api/incidentApi";
 import {
@@ -21,7 +21,7 @@ import {
 import type {
   CreateIncidentRequest,
   IncidentResponse,
-  IncidentNote,
+  IncidentTimelineItem,
   IncidentSeverity,
   IncidentStatus,
   UpdateIncidentRequest,
@@ -66,6 +66,18 @@ const formatDueAt = (dateTime?: string | null) => {
 
 const formatReportedAt = (dateTime: string) => new Date(dateTime).toLocaleString();
 
+const formatTimelineAction = (action?: string | null) => {
+  if (!action) {
+    return "Activity";
+  }
+
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
 const getDueStatus = (incident: IncidentResponse) => {
   if (!incident.dueAt) {
     return "No SLA";
@@ -109,9 +121,9 @@ function IncidentsPage() {
   const [createdToFilter, setCreatedToFilter] = useState("");
   const [dueFromFilter, setDueFromFilter] = useState("");
   const [dueToFilter, setDueToFilter] = useState("");
-  const [incidentNotes, setIncidentNotes] = useState<IncidentNote[]>([]);
+  const [incidentTimeline, setIncidentTimeline] = useState<IncidentTimelineItem[]>([]);
   const [newNote, setNewNote] = useState("");
-  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [selectedIncidentIds, setSelectedIncidentIds] = useState<Set<number>>(
     () => new Set()
@@ -267,6 +279,19 @@ function IncidentsPage() {
     }
   };
 
+  const loadIncidentTimeline = async (incidentId: number) => {
+    setIsLoadingTimeline(true);
+
+    try {
+      const response = await getIncidentTimeline(incidentId);
+      setIncidentTimeline(response);
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to load incident timeline"), "error");
+    } finally {
+      setIsLoadingTimeline(false);
+    }
+  };
+
   const openEdit = async (incident: IncidentResponse) => {
     setSelectedIncident(incident);
     setEditForm({
@@ -277,24 +302,15 @@ function IncidentsPage() {
       assignedToEmail: incident.assignedToEmail ?? "",
       dueAt: toDateTimeLocalValue(incident.dueAt),
     });
-    setIncidentNotes([]);
+    setIncidentTimeline([]);
     setNewNote("");
-    setIsLoadingNotes(true);
-
-    try {
-      const response = await getIncidentNotes(incident.id);
-      setIncidentNotes(response);
-    } catch (error: unknown) {
-      showMessage(getApiErrorMessage(error, "Failed to load incident notes"), "error");
-    } finally {
-      setIsLoadingNotes(false);
-    }
+    await loadIncidentTimeline(incident.id);
   };
 
   const closeEdit = () => {
     setSelectedIncident(null);
     setEditForm(null);
-    setIncidentNotes([]);
+    setIncidentTimeline([]);
     setNewNote("");
   };
 
@@ -338,10 +354,10 @@ function IncidentsPage() {
     setIsAddingNote(true);
 
     try {
-      const response = await addIncidentNote(selectedIncident.id, {
+      await addIncidentNote(selectedIncident.id, {
         note: newNote.trim(),
       });
-      setIncidentNotes((currentNotes) => [response, ...currentNotes]);
+      await loadIncidentTimeline(selectedIncident.id);
       setNewNote("");
       showMessage("Incident note added", "success");
     } catch (error: unknown) {
@@ -1030,7 +1046,7 @@ function IncidentsPage() {
             </div>
 
             <section className="notes-panel">
-              <h3>Timeline Notes</h3>
+              <h3>Activity Timeline</h3>
 
               <div className="note-composer">
                 <textarea
@@ -1047,17 +1063,26 @@ function IncidentsPage() {
                 </button>
               </div>
 
-              {isLoadingNotes ? (
-                <p className="text-muted">Loading notes...</p>
-              ) : incidentNotes.length === 0 ? (
-                <p className="text-muted">No timeline notes yet.</p>
+              {isLoadingTimeline ? (
+                <p className="text-muted">Loading activity...</p>
+              ) : incidentTimeline.length === 0 ? (
+                <p className="text-muted">No activity yet.</p>
               ) : (
                 <div className="notes-list">
-                  {incidentNotes.map((note) => (
-                    <article className="note-item" key={note.id}>
-                      <p>{note.note}</p>
+                  {incidentTimeline.map((item) => (
+                    <article
+                      className={`timeline-item ${item.type === "NOTE" ? "timeline-note" : "timeline-audit"}`}
+                      key={`${item.type}-${item.id}`}
+                    >
+                      <div className="timeline-item-header">
+                        <span className="timeline-type">
+                          {item.type === "NOTE" ? "Note" : formatTimelineAction(item.action)}
+                        </span>
+                        <span>{new Date(item.createdAt).toLocaleString()}</span>
+                      </div>
+                      <p>{item.type === "NOTE" ? item.note : item.details}</p>
                       <span>
-                        {note.createdByEmail} · {new Date(note.createdAt).toLocaleString()}
+                        {item.actorEmail || "System"}
                       </span>
                     </article>
                   ))}
