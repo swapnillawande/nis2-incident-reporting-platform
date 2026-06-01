@@ -1,5 +1,6 @@
 package com.nisync.user.service;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.DuplicateResourceException;
@@ -15,6 +16,8 @@ import com.nisync.user.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -155,14 +158,14 @@ public class UserServiceImplTest {
         AppUser firstUser = buildUser(1L, "First User", "first@test.com");
         AppUser secondUser = buildUser(2L, "Second User", "second@test.com");
 
-        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort()))
-                .thenReturn(List.of(firstUser, secondUser));
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescPageable()))
+                .thenReturn(new PageImpl<>(List.of(firstUser, secondUser)));
 
-        List<UserResponseDto> response = userService.getAllUsers(null, null, null);
+        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(null, null, null, 0, 10);
 
-        assertEquals(2, response.size());
-        assertEquals("first@test.com", response.get(0).getEmail());
-        assertEquals("second@test.com", response.get(1).getEmail());
+        assertEquals(2, response.getContent().size());
+        assertEquals("first@test.com", response.getContent().get(0).getEmail());
+        assertEquals("second@test.com", response.getContent().get(1).getEmail());
     }
 
     @Test
@@ -170,17 +173,20 @@ public class UserServiceImplTest {
         AppUser user = buildUser(1L, "Filtered User", "filtered@test.com");
         user.setRoles(Set.of(RoleName.AUDITOR));
 
-        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(user));
+        when(userRepository.findAll(anyUserSpecification(), anyCreatedAtDescPageable()))
+                .thenReturn(new PageImpl<>(List.of(user)));
 
-        List<UserResponseDto> response = userService.getAllUsers(
+        PagedResponseDto<UserResponseDto> response = userService.getAllUsers(
                 UserStatus.ACTIVE,
                 RoleName.AUDITOR,
-                "filtered"
+                "filtered",
+                0,
+                10
         );
 
-        assertEquals(1, response.size());
-        assertEquals("filtered@test.com", response.get(0).getEmail());
-        assertTrue(response.get(0).getRoles().contains(RoleName.AUDITOR));
+        assertEquals(1, response.getContent().size());
+        assertEquals("filtered@test.com", response.getContent().get(0).getEmail());
+        assertTrue(response.getContent().get(0).getRoles().contains(RoleName.AUDITOR));
     }
 
     @Test
@@ -278,5 +284,10 @@ public class UserServiceImplTest {
     private Sort anyCreatedAtDescSort() {
         return argThat(sort -> sort.getOrderFor("createdAt") != null
                 && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyCreatedAtDescPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
     }
 }

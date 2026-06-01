@@ -2,6 +2,7 @@ package com.nisync.user.service;
 
 import java.util.List;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
@@ -21,7 +22,7 @@ public interface UserService {
     
     UserResponseDto getUserById(Long userId);
     
-    List<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query);
+    PagedResponseDto<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query, int page, int size);
 
     String exportUsersCsv(UserStatus status, RoleName role, String query, String actorEmail);
     

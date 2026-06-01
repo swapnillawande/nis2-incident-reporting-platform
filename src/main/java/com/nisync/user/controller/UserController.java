@@ -2,6 +2,7 @@ package com.nisync.user.controller;
 
 import java.util.List;
 
+import com.nisync.common.response.PagedResponseDto;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -111,13 +112,15 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<UserResponseDto> getAllUsers(
+    public PagedResponseDto<UserResponseDto> getAllUsers(
             @RequestParam(name = "status", required = false) UserStatus status,
             @RequestParam(name = "role", required = false) RoleName role,
-            @RequestParam(name = "q", required = false) String query) {
-        logger.info("GET /users called. status: {}, role: {}, query: {}", status, role, query);
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        logger.info("GET /users called. status: {}, role: {}, query: {}, page: {}, size: {}", status, role, query, page, size);
 
-        return userService.getAllUsers(status, role, query);
+        return userService.getAllUsers(status, role, query, page, size);
     }
 
     @GetMapping("/export")

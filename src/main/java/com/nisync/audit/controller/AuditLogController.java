@@ -2,6 +2,7 @@ package com.nisync.audit.controller;
 
 import com.nisync.audit.dto.AuditLogResponseDto;
 import com.nisync.audit.service.AuditLogService;
+import com.nisync.common.response.PagedResponseDto;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -13,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("audit-logs")
 public class AuditLogController {
@@ -24,12 +23,14 @@ public class AuditLogController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<AuditLogResponseDto> getRecentAuditLogs(
+    public PagedResponseDto<AuditLogResponseDto> getRecentAuditLogs(
             @RequestParam(name = "action", required = false) String action,
             @RequestParam(name = "resourceType", required = false) String resourceType,
-            @RequestParam(name = "q", required = false) String query) {
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
 
-        return auditLogService.getRecentAuditLogs(action, resourceType, query);
+        return auditLogService.getRecentAuditLogs(action, resourceType, query, page, size);
     }
 
     @GetMapping("/export")

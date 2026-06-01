@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,7 @@ import com.nisync.auth.service.JwtService;
 import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.user.dto.AuthResponseDto;
 import com.nisync.user.dto.LoginRequestDto;
 import com.nisync.user.dto.RegisterRequestDto;
@@ -153,16 +156,16 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
-	public List<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query) {
-		logger.info("Fetching users. status: {}, role: {}, query: {}", status, role, query);
+	public PagedResponseDto<UserResponseDto> getAllUsers(UserStatus status, RoleName role, String query, int page, int size) {
+		logger.info("Fetching users. status: {}, role: {}, query: {}, page: {}, size: {}", status, role, query, page, size);
 
-		return userRepository.findAll(
+		Page<UserResponseDto> users = userRepository.findAll(
 				buildUserSpecification(status, role, query),
-				Sort.by(Sort.Direction.DESC, "createdAt")
+				PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
 		)
-				.stream()
-				.map(UserMapperDto::toResponse)
-				.toList();
+				.map(UserMapperDto::toResponse);
+
+		return PagedResponseDto.fromPage(users);
 	}
 
 	@Override
@@ -297,6 +300,18 @@ public class UserServiceImpl implements UserService{
 
 			return predicate;
 		};
+	}
+
+	private int normalizePage(int page) {
+		return Math.max(page, 0);
+	}
+
+	private int normalizeSize(int size) {
+		if (size < 1) {
+			return 10;
+		}
+
+		return Math.min(size, 100);
 	}
 
 	private UserResponseDto createUserRecord(

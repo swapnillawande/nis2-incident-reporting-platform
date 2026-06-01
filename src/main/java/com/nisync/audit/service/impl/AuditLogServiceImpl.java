@@ -5,8 +5,10 @@ import com.nisync.audit.dto.AuditLogResponseDto;
 import com.nisync.audit.entity.AuditLog;
 import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.audit.service.AuditLogService;
+import com.nisync.common.response.PagedResponseDto;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,14 +45,19 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public List<AuditLogResponseDto> getRecentAuditLogs(String action, String resourceType, String query) {
-        return auditLogRepository.findAll(
+    public PagedResponseDto<AuditLogResponseDto> getRecentAuditLogs(
+            String action,
+            String resourceType,
+            String query,
+            int page,
+            int size) {
+        Page<AuditLogResponseDto> auditLogs = auditLogRepository.findAll(
                 buildAuditLogSpecification(action, resourceType, query),
-                        PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"))
+                        PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
                 )
-                .stream()
-                .map(AuditLogMapperDto::toResponse)
-                .toList();
+                .map(AuditLogMapperDto::toResponse);
+
+        return PagedResponseDto.fromPage(auditLogs);
     }
 
     @Override
@@ -94,6 +101,18 @@ public class AuditLogServiceImpl implements AuditLogService {
 
             return predicate;
         };
+    }
+
+    private int normalizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int normalizeSize(int size) {
+        if (size < 1) {
+            return 10;
+        }
+
+        return Math.min(size, 100);
     }
 
     private String buildAuditLogsCsv(List<AuditLog> auditLogs) {
