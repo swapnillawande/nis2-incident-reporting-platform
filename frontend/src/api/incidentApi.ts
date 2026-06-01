@@ -60,6 +60,23 @@ export const getAllIncidents = async (
   return response.data;
 };
 
+export const exportIncidentsCsv = async (
+  filters: IncidentFilters = {}
+): Promise<Blob> => {
+  const response = await axios.get(`${API_BASE_URL}/incidents/export`, {
+    headers: getAuthHeader(),
+    params: {
+      status: filters.status || undefined,
+      severity: filters.severity || undefined,
+      assignedToEmail: filters.assignedToEmail?.trim() || undefined,
+      q: filters.query?.trim() || undefined,
+    },
+    responseType: "blob",
+  });
+
+  return response.data;
+};
+
 export const createIncident = async (
   data: CreateIncidentRequest
 ): Promise<IncidentResponse> => {

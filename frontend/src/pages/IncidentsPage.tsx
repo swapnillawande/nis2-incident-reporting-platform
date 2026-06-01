@@ -4,6 +4,7 @@ import {
   addIncidentNote,
   createIncident,
   deleteIncident,
+  exportIncidentsCsv,
   getAllIncidents,
   getIncidentNotes,
   updateIncident,
@@ -77,6 +78,7 @@ function IncidentsPage() {
   const [editForm, setEditForm] = useState<UpdateIncidentRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
@@ -261,6 +263,34 @@ function IncidentsPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+
+    try {
+      const csvBlob = await exportIncidentsCsv({
+        status: statusFilter,
+        severity: severityFilter,
+        assignedToEmail: assignedToFilter,
+        query: queryFilter,
+      });
+      const downloadUrl = URL.createObjectURL(csvBlob);
+      const downloadLink = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `incidents-export-${timestamp}.csv`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      URL.revokeObjectURL(downloadUrl);
+      showMessage("Incident CSV exported", "success");
+    } catch (error: unknown) {
+      showMessage(getApiErrorMessage(error, "Failed to export incidents"), "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="page-container">
       <section className="page-header">
@@ -272,9 +302,14 @@ function IncidentsPage() {
           </p>
         </div>
 
-        <button className="btn-secondary" onClick={loadIncidents} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="page-header-actions">
+          <button className="btn-secondary" onClick={handleExportCsv} disabled={isExporting}>
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+          <button className="btn-secondary" onClick={loadIncidents} disabled={isLoading}>
+            Refresh
+          </button>
+        </div>
       </section>
 
       {message && <div className={`message ${messageType}`}>{message}</div>}
