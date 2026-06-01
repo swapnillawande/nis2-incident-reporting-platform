@@ -77,20 +77,24 @@ public class IncidentServiceImpl implements IncidentService {
             String assignedToEmail,
             String query,
             int page,
-            int size) {
+            int size,
+            String sortBy,
+            String sortDir) {
         logger.info(
-                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}",
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}, sortBy: {}, sortDir: {}",
                 status,
                 severity,
                 assignedToEmail,
                 query,
                 page,
-                size
+                size,
+                sortBy,
+                sortDir
         );
 
         Page<IncidentResponseDto> incidents = incidentRepository.findAll(
                         buildIncidentSpecification(status, severity, assignedToEmail, query),
-                        PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
+                        PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
                 )
                 .map(IncidentMapperDto::toResponse);
 
@@ -327,6 +331,25 @@ public class IncidentServiceImpl implements IncidentService {
         }
 
         return Math.min(size, 100);
+    }
+
+    private Sort buildSort(String sortBy, String sortDir) {
+        String sortProperty = switch (normalizeSortKey(sortBy)) {
+            case "title" -> "title";
+            case "severity" -> "severity";
+            case "status" -> "status";
+            case "reportedByEmail" -> "reportedByEmail";
+            case "assignedToEmail" -> "assignedToEmail";
+            case "dueAt" -> "dueAt";
+            default -> "createdAt";
+        };
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        return Sort.by(direction, sortProperty);
+    }
+
+    private String normalizeSortKey(String sortBy) {
+        return sortBy == null ? "" : sortBy.trim();
     }
 
     private String buildIncidentCsv(List<Incident> incidents) {

@@ -19,7 +19,9 @@ public interface IncidentService {
             String assignedToEmail,
             String query,
             int page,
-            int size);
+            int size,
+            String sortBy,
+            String sortDir);
 
     String exportIncidentsCsv(
             IncidentStatus status,

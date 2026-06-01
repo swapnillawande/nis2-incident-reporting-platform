@@ -50,10 +50,12 @@ public class AuditLogServiceImpl implements AuditLogService {
             String resourceType,
             String query,
             int page,
-            int size) {
+            int size,
+            String sortBy,
+            String sortDir) {
         Page<AuditLogResponseDto> auditLogs = auditLogRepository.findAll(
                 buildAuditLogSpecification(action, resourceType, query),
-                        PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
+                        PageRequest.of(normalizePage(page), normalizeSize(size), buildSort(sortBy, sortDir))
                 )
                 .map(AuditLogMapperDto::toResponse);
 
@@ -113,6 +115,22 @@ public class AuditLogServiceImpl implements AuditLogService {
         }
 
         return Math.min(size, 100);
+    }
+
+    private Sort buildSort(String sortBy, String sortDir) {
+        String sortProperty = switch (normalizeSortKey(sortBy)) {
+            case "action" -> "action";
+            case "resourceType" -> "resourceType";
+            case "actorEmail" -> "actorEmail";
+            default -> "createdAt";
+        };
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        return Sort.by(direction, sortProperty);
+    }
+
+    private String normalizeSortKey(String sortBy) {
+        return sortBy == null ? "" : sortBy.trim();
     }
 
     private String buildAuditLogsCsv(List<AuditLog> auditLogs) {
