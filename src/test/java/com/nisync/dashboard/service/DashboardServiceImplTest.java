@@ -1,5 +1,7 @@
 package com.nisync.dashboard.service;
 
+import com.nisync.audit.entity.AuditLog;
+import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.dashboard.dto.DashboardSummaryDto;
 import com.nisync.dashboard.service.impl.DashboardServiceImpl;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -28,16 +30,19 @@ class DashboardServiceImplTest {
 
     private UserRepository userRepository;
     private IncidentRepository incidentRepository;
+    private AuditLogRepository auditLogRepository;
     private DashboardServiceImpl dashboardService;
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
         incidentRepository = mock(IncidentRepository.class);
+        auditLogRepository = mock(AuditLogRepository.class);
         dashboardService = new DashboardServiceImpl();
 
         ReflectionTestUtils.setField(dashboardService, "userRepository", userRepository);
         ReflectionTestUtils.setField(dashboardService, "incidentRepository", incidentRepository);
+        ReflectionTestUtils.setField(dashboardService, "auditLogRepository", auditLogRepository);
     }
 
     @Test
@@ -46,6 +51,7 @@ class DashboardServiceImplTest {
         when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(2L);
         when(userRepository.countByStatus(UserStatus.INACTIVE)).thenReturn(1L);
         when(userRepository.countByStatus(UserStatus.SUSPENDED)).thenReturn(1L);
+        when(auditLogRepository.count()).thenReturn(12L);
         when(userRepository.countByRole(RoleName.ADMIN)).thenReturn(1L);
         when(userRepository.countByRole(RoleName.SECURITY_ANALYST)).thenReturn(2L);
         when(userRepository.countByRole(RoleName.COMPLIANCE_OFFICER)).thenReturn(1L);
@@ -75,6 +81,9 @@ class DashboardServiceImplTest {
         previousIncident.setCreatedAt(LocalDate.now().minusDays(2).atTime(14, 15));
         when(incidentRepository.findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
                 any(LocalDateTime.class))).thenReturn(List.of(previousIncident, todayIncident));
+        AuditLog auditLog = buildAuditLog(1L, LocalDate.now().minusDays(1).atTime(10, 20));
+        when(auditLogRepository.findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                any(LocalDateTime.class))).thenReturn(List.of(auditLog));
 
         DashboardSummaryDto response = dashboardService.getSummary();
 
@@ -82,6 +91,7 @@ class DashboardServiceImplTest {
         assertEquals(2L, response.getActiveUsers());
         assertEquals(1L, response.getInactiveUsers());
         assertEquals(1L, response.getSuspendedUsers());
+        assertEquals(12L, response.getTotalAuditLogs());
         assertEquals(1L, response.getAdminUsers());
         assertEquals(2L, response.getSecurityAnalystUsers());
         assertEquals(1L, response.getComplianceOfficerUsers());
@@ -104,6 +114,8 @@ class DashboardServiceImplTest {
         assertEquals(LocalDate.now().minusDays(6).toString(), response.getIncidentTrend().get(0).getDate());
         assertEquals(1L, response.getIncidentTrend().get(4).getCount());
         assertEquals(1L, response.getIncidentTrend().get(6).getCount());
+        assertEquals(7, response.getAuditTrend().size());
+        assertEquals(1L, response.getAuditTrend().get(5).getCount());
     }
 
     @Test
@@ -132,5 +144,18 @@ class DashboardServiceImplTest {
         incident.setUpdatedAt(LocalDateTime.now());
 
         return incident;
+    }
+
+    private AuditLog buildAuditLog(Long id, LocalDateTime createdAt) {
+        AuditLog auditLog = new AuditLog();
+        auditLog.setId(id);
+        auditLog.setAction("INCIDENT_CREATED");
+        auditLog.setResourceType("INCIDENT");
+        auditLog.setResourceId("1");
+        auditLog.setActorEmail("admin@nis2.com");
+        auditLog.setDetails("Incident created");
+        auditLog.setCreatedAt(createdAt);
+
+        return auditLog;
     }
 }

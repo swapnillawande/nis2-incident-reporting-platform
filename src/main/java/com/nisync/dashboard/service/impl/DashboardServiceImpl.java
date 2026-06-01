@@ -1,5 +1,6 @@
 package com.nisync.dashboard.service.impl;
 
+import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.dashboard.dto.DashboardSummaryDto;
 import com.nisync.dashboard.dto.DashboardTrendPointDto;
 import com.nisync.dashboard.service.DashboardService;
@@ -31,6 +32,9 @@ public class DashboardServiceImpl implements DashboardService {
     @Autowired
     private IncidentRepository incidentRepository;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     @Override
     public DashboardSummaryDto getSummary() {
         long openIncidents = incidentRepository.countByStatus(IncidentStatus.OPEN);
@@ -45,6 +49,7 @@ public class DashboardServiceImpl implements DashboardService {
                 userRepository.countByStatus(UserStatus.ACTIVE),
                 userRepository.countByStatus(UserStatus.INACTIVE),
                 userRepository.countByStatus(UserStatus.SUSPENDED),
+                auditLogRepository.count(),
                 userRepository.countByRole(RoleName.ADMIN),
                 userRepository.countByRole(RoleName.SECURITY_ANALYST),
                 userRepository.countByRole(RoleName.COMPLIANCE_OFFICER),
@@ -63,7 +68,8 @@ public class DashboardServiceImpl implements DashboardService {
                 incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses),
                 incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(activeStatuses),
                 incidentRepository.countByAssignedToEmailIsNullAndStatusIn(activeStatuses),
-                buildIncidentTrend(now.toLocalDate())
+                buildIncidentTrend(now.toLocalDate()),
+                buildAuditTrend(now.toLocalDate())
         );
     }
 
@@ -96,6 +102,23 @@ public class DashboardServiceImpl implements DashboardService {
         return IntStream.rangeClosed(0, 6)
                 .mapToObj(startDate::plusDays)
                 .map(date -> new DashboardTrendPointDto(date.toString(), incidentsByDate.getOrDefault(date, 0L)))
+                .toList();
+    }
+
+    private List<DashboardTrendPointDto> buildAuditTrend(LocalDate today) {
+        LocalDate startDate = today.minusDays(6);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        Map<LocalDate, Long> auditLogsByDate = auditLogRepository
+                .findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(startDateTime)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        auditLog -> auditLog.getCreatedAt().toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        return IntStream.rangeClosed(0, 6)
+                .mapToObj(startDate::plusDays)
+                .map(date -> new DashboardTrendPointDto(date.toString(), auditLogsByDate.getOrDefault(date, 0L)))
                 .toList();
     }
 }

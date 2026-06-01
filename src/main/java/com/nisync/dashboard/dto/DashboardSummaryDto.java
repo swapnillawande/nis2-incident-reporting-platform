@@ -8,6 +8,7 @@ public class DashboardSummaryDto {
     private long activeUsers;
     private long inactiveUsers;
     private long suspendedUsers;
+    private long totalAuditLogs;
     private long adminUsers;
     private long securityAnalystUsers;
     private long complianceOfficerUsers;
@@ -27,6 +28,7 @@ public class DashboardSummaryDto {
     private long assignedActiveIncidents;
     private long unassignedActiveIncidents;
     private List<DashboardTrendPointDto> incidentTrend;
+    private List<DashboardTrendPointDto> auditTrend;
 
     public DashboardSummaryDto() {
     }
@@ -36,6 +38,7 @@ public class DashboardSummaryDto {
             long activeUsers,
             long inactiveUsers,
             long suspendedUsers,
+            long totalAuditLogs,
             long adminUsers,
             long securityAnalystUsers,
             long complianceOfficerUsers,
@@ -54,11 +57,13 @@ public class DashboardSummaryDto {
             long unscheduledActiveIncidents,
             long assignedActiveIncidents,
             long unassignedActiveIncidents,
-            List<DashboardTrendPointDto> incidentTrend) {
+            List<DashboardTrendPointDto> incidentTrend,
+            List<DashboardTrendPointDto> auditTrend) {
         this.totalUsers = totalUsers;
         this.activeUsers = activeUsers;
         this.inactiveUsers = inactiveUsers;
         this.suspendedUsers = suspendedUsers;
+        this.totalAuditLogs = totalAuditLogs;
         this.adminUsers = adminUsers;
         this.securityAnalystUsers = securityAnalystUsers;
         this.complianceOfficerUsers = complianceOfficerUsers;
@@ -78,6 +83,7 @@ public class DashboardSummaryDto {
         this.assignedActiveIncidents = assignedActiveIncidents;
         this.unassignedActiveIncidents = unassignedActiveIncidents;
         this.incidentTrend = incidentTrend;
+        this.auditTrend = auditTrend;
     }
 
     public long getTotalUsers() {
@@ -110,6 +116,14 @@ public class DashboardSummaryDto {
 
     public void setSuspendedUsers(long suspendedUsers) {
         this.suspendedUsers = suspendedUsers;
+    }
+
+    public long getTotalAuditLogs() {
+        return totalAuditLogs;
+    }
+
+    public void setTotalAuditLogs(long totalAuditLogs) {
+        this.totalAuditLogs = totalAuditLogs;
     }
 
     public long getAdminUsers() {
@@ -262,5 +276,13 @@ public class DashboardSummaryDto {
 
     public void setIncidentTrend(List<DashboardTrendPointDto> incidentTrend) {
         this.incidentTrend = incidentTrend;
+    }
+
+    public List<DashboardTrendPointDto> getAuditTrend() {
+        return auditTrend;
+    }
+
+    public void setAuditTrend(List<DashboardTrendPointDto> auditTrend) {
+        this.auditTrend = auditTrend;
     }
 }
