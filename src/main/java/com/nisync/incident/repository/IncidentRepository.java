@@ -30,5 +30,7 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
 
     long countByAssignedToEmailIsNotNullAndStatusIn(Collection<IncidentStatus> statuses);
 
+    List<Incident> findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(LocalDateTime createdAt);
+
     List<Incident> findTop5ByStatusInOrderByCreatedAtDesc(Collection<IncidentStatus> statuses);
 }

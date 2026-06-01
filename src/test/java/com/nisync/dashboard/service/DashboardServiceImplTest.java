@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -68,6 +69,12 @@ class DashboardServiceImplTest {
         when(incidentRepository.countByDueAtIsNullAndStatusIn(any())).thenReturn(3L);
         when(incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(any())).thenReturn(4L);
         when(incidentRepository.countByAssignedToEmailIsNullAndStatusIn(any())).thenReturn(1L);
+        Incident todayIncident = buildIncident(1L, "Today incident");
+        todayIncident.setCreatedAt(LocalDate.now().atTime(9, 30));
+        Incident previousIncident = buildIncident(2L, "Previous incident");
+        previousIncident.setCreatedAt(LocalDate.now().minusDays(2).atTime(14, 15));
+        when(incidentRepository.findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
+                any(LocalDateTime.class))).thenReturn(List.of(previousIncident, todayIncident));
 
         DashboardSummaryDto response = dashboardService.getSummary();
 
@@ -93,6 +100,10 @@ class DashboardServiceImplTest {
         assertEquals(3L, response.getUnscheduledActiveIncidents());
         assertEquals(4L, response.getAssignedActiveIncidents());
         assertEquals(1L, response.getUnassignedActiveIncidents());
+        assertEquals(7, response.getIncidentTrend().size());
+        assertEquals(LocalDate.now().minusDays(6).toString(), response.getIncidentTrend().get(0).getDate());
+        assertEquals(1L, response.getIncidentTrend().get(4).getCount());
+        assertEquals(1L, response.getIncidentTrend().get(6).getCount());
     }
 
     @Test

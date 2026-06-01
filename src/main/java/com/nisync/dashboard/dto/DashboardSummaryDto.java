@@ -1,5 +1,7 @@
 package com.nisync.dashboard.dto;
 
+import java.util.List;
+
 public class DashboardSummaryDto {
 
     private long totalUsers;
@@ -24,6 +26,7 @@ public class DashboardSummaryDto {
     private long unscheduledActiveIncidents;
     private long assignedActiveIncidents;
     private long unassignedActiveIncidents;
+    private List<DashboardTrendPointDto> incidentTrend;
 
     public DashboardSummaryDto() {
     }
@@ -50,7 +53,8 @@ public class DashboardSummaryDto {
             long dueSoonIncidents,
             long unscheduledActiveIncidents,
             long assignedActiveIncidents,
-            long unassignedActiveIncidents) {
+            long unassignedActiveIncidents,
+            List<DashboardTrendPointDto> incidentTrend) {
         this.totalUsers = totalUsers;
         this.activeUsers = activeUsers;
         this.inactiveUsers = inactiveUsers;
@@ -73,6 +77,7 @@ public class DashboardSummaryDto {
         this.unscheduledActiveIncidents = unscheduledActiveIncidents;
         this.assignedActiveIncidents = assignedActiveIncidents;
         this.unassignedActiveIncidents = unassignedActiveIncidents;
+        this.incidentTrend = incidentTrend;
     }
 
     public long getTotalUsers() {
@@ -249,5 +254,13 @@ public class DashboardSummaryDto {
 
     public void setUnassignedActiveIncidents(long unassignedActiveIncidents) {
         this.unassignedActiveIncidents = unassignedActiveIncidents;
+    }
+
+    public List<DashboardTrendPointDto> getIncidentTrend() {
+        return incidentTrend;
+    }
+
+    public void setIncidentTrend(List<DashboardTrendPointDto> incidentTrend) {
+        this.incidentTrend = incidentTrend;
     }
 }

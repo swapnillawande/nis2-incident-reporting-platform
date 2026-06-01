@@ -1,6 +1,7 @@
 package com.nisync.dashboard.service.impl;
 
 import com.nisync.dashboard.dto.DashboardSummaryDto;
+import com.nisync.dashboard.dto.DashboardTrendPointDto;
 import com.nisync.dashboard.service.DashboardService;
 import com.nisync.incident.dto.IncidentMapperDto;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -14,8 +15,12 @@ import com.nisync.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -57,7 +62,8 @@ public class DashboardServiceImpl implements DashboardService {
                 incidentRepository.countByDueAtBetweenAndStatusIn(now, now.plusHours(24), activeStatuses),
                 incidentRepository.countByDueAtIsNullAndStatusIn(activeStatuses),
                 incidentRepository.countByAssignedToEmailIsNotNullAndStatusIn(activeStatuses),
-                incidentRepository.countByAssignedToEmailIsNullAndStatusIn(activeStatuses)
+                incidentRepository.countByAssignedToEmailIsNullAndStatusIn(activeStatuses),
+                buildIncidentTrend(now.toLocalDate())
         );
     }
 
@@ -74,5 +80,22 @@ public class DashboardServiceImpl implements DashboardService {
                 IncidentStatus.OPEN,
                 IncidentStatus.IN_PROGRESS
         );
+    }
+
+    private List<DashboardTrendPointDto> buildIncidentTrend(LocalDate today) {
+        LocalDate startDate = today.minusDays(6);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        Map<LocalDate, Long> incidentsByDate = incidentRepository
+                .findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(startDateTime)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        incident -> incident.getCreatedAt().toLocalDate(),
+                        Collectors.counting()
+                ));
+
+        return IntStream.rangeClosed(0, 6)
+                .mapToObj(startDate::plusDays)
+                .map(date -> new DashboardTrendPointDto(date.toString(), incidentsByDate.getOrDefault(date, 0L)))
+                .toList();
     }
 }
