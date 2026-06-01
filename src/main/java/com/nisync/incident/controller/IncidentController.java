@@ -1,5 +1,6 @@
 package com.nisync.incident.controller;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.incident.dto.BulkIncidentStatusUpdateRequestDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
@@ -56,21 +57,25 @@ public class IncidentController {
     }
 
     @GetMapping
-    public List<IncidentResponseDto> getIncidents(
+    public PagedResponseDto<IncidentResponseDto> getIncidents(
             @RequestParam(name = "status", required = false) IncidentStatus status,
             @RequestParam(name = "severity", required = false) IncidentSeverity severity,
             @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
-            @RequestParam(name = "q", required = false) String query) {
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
 
         logger.info(
-                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                "GET /incidents called. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}",
                 status,
                 severity,
                 assignedToEmail,
-                query
+                query,
+                page,
+                size
         );
 
-        return incidentService.getIncidents(status, severity, assignedToEmail, query);
+        return incidentService.getIncidents(status, severity, assignedToEmail, query, page, size);
     }
 
     @GetMapping("/export")

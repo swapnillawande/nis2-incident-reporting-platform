@@ -1,5 +1,6 @@
 package com.nisync.incident.service;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.common.exception.ResourceNotFoundException;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
@@ -13,6 +14,8 @@ import com.nisync.incident.service.impl.IncidentServiceImpl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,14 +86,14 @@ class IncidentServiceImplTest {
         Incident firstIncident = buildIncident(1L, "First Incident");
         Incident secondIncident = buildIncident(2L, "Second Incident");
 
-        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort()))
-                .thenReturn(List.of(firstIncident, secondIncident));
+        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescPageable()))
+                .thenReturn(new PageImpl<>(List.of(firstIncident, secondIncident)));
 
-        List<IncidentResponseDto> response = incidentService.getIncidents(null, null, null, null);
+        PagedResponseDto<IncidentResponseDto> response = incidentService.getIncidents(null, null, null, null, 0, 10);
 
-        assertEquals(2, response.size());
-        assertEquals("First Incident", response.get(0).getTitle());
-        assertEquals("Second Incident", response.get(1).getTitle());
+        assertEquals(2, response.getContent().size());
+        assertEquals("First Incident", response.getContent().get(0).getTitle());
+        assertEquals("Second Incident", response.getContent().get(1).getTitle());
     }
 
     @Test
@@ -99,19 +102,22 @@ class IncidentServiceImplTest {
         incident.setStatus(IncidentStatus.IN_PROGRESS);
         incident.setSeverity(IncidentSeverity.HIGH);
 
-        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort())).thenReturn(List.of(incident));
+        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescPageable()))
+                .thenReturn(new PageImpl<>(List.of(incident)));
 
-        List<IncidentResponseDto> response = incidentService.getIncidents(
+        PagedResponseDto<IncidentResponseDto> response = incidentService.getIncidents(
                 IncidentStatus.IN_PROGRESS,
                 IncidentSeverity.HIGH,
                 "analyst@nis2.com",
-                "filtered"
+                "filtered",
+                0,
+                10
         );
 
-        assertEquals(1, response.size());
-        assertEquals(IncidentStatus.IN_PROGRESS, response.get(0).getStatus());
-        assertEquals(IncidentSeverity.HIGH, response.get(0).getSeverity());
-        assertEquals("analyst@nis2.com", response.get(0).getAssignedToEmail());
+        assertEquals(1, response.getContent().size());
+        assertEquals(IncidentStatus.IN_PROGRESS, response.getContent().get(0).getStatus());
+        assertEquals(IncidentSeverity.HIGH, response.getContent().get(0).getSeverity());
+        assertEquals("analyst@nis2.com", response.getContent().get(0).getAssignedToEmail());
     }
 
     @Test
@@ -277,5 +283,10 @@ class IncidentServiceImplTest {
     private Sort anyCreatedAtDescSort() {
         return argThat(sort -> sort.getOrderFor("createdAt") != null
                 && Sort.Direction.DESC.equals(sort.getOrderFor("createdAt").getDirection()));
+    }
+
+    private Pageable anyCreatedAtDescPageable() {
+        return argThat(pageable -> pageable.getSort().getOrderFor("createdAt") != null
+                && Sort.Direction.DESC.equals(pageable.getSort().getOrderFor("createdAt").getDirection()));
     }
 }

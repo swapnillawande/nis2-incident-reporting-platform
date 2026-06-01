@@ -1,6 +1,7 @@
 package com.nisync.incident.service.impl;
 
 import com.nisync.common.exception.ResourceNotFoundException;
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentMapperDto;
@@ -15,6 +16,8 @@ import com.nisync.incident.service.IncidentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -68,26 +71,30 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponseDto> getIncidents(
+    public PagedResponseDto<IncidentResponseDto> getIncidents(
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
-            String query) {
+            String query,
+            int page,
+            int size) {
         logger.info(
-                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                "Fetching incidents. status: {}, severity: {}, assignedToEmail: {}, query: {}, page: {}, size: {}",
                 status,
                 severity,
                 assignedToEmail,
-                query
+                query,
+                page,
+                size
         );
 
-        return incidentRepository.findAll(
+        Page<IncidentResponseDto> incidents = incidentRepository.findAll(
                         buildIncidentSpecification(status, severity, assignedToEmail, query),
-                        Sort.by(Sort.Direction.DESC, "createdAt")
+                        PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"))
                 )
-                .stream()
-                .map(IncidentMapperDto::toResponse)
-                .toList();
+                .map(IncidentMapperDto::toResponse);
+
+        return PagedResponseDto.fromPage(incidents);
     }
 
     @Override
@@ -308,6 +315,18 @@ public class IncidentServiceImpl implements IncidentService {
 
             return predicate;
         };
+    }
+
+    private int normalizePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int normalizeSize(int size) {
+        if (size < 1) {
+            return 10;
+        }
+
+        return Math.min(size, 100);
     }
 
     private String buildIncidentCsv(List<Incident> incidents) {
