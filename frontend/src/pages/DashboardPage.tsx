@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type Highcharts from "highcharts";
+import DashboardChart from "../components/DashboardChart";
 import { getDashboardSummary, getRecentActiveIncidents } from "../api/dashboardApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import { getCurrentUser } from "../api/userApi";
@@ -12,14 +14,6 @@ const formatDateTime = (dateTime?: string | null) => {
   }
 
   return new Date(dateTime).toLocaleString();
-};
-
-const formatPercent = (value: number, total: number) => {
-  if (total <= 0) {
-    return "0%";
-  }
-
-  return `${Math.round((value / total) * 100)}%`;
 };
 
 function DashboardPage() {
@@ -97,45 +91,138 @@ function DashboardPage() {
       tone: "success",
     },
   ];
-  const userStatusBreakdown = [
-    {
-      label: "Active",
-      value: summary?.activeUsers ?? 0,
-      tone: "success",
+  const chartTextColor = "#334155";
+  const chartMutedColor = "#64748b";
+  const chartGridColor = "rgba(148, 163, 184, 0.24)";
+  const emptyChartLabel = summary ? undefined : "Loading dashboard data";
+  const incidentStatusChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "column", height: 300 },
+    colors: ["#2563eb", "#f59e0b", "#10b981", "#64748b"],
+    xAxis: {
+      categories: ["Open", "In Progress", "Resolved", "Closed"],
+      labels: { style: { color: chartMutedColor, fontWeight: "700" } },
+      lineColor: chartGridColor,
     },
-    {
-      label: "Inactive",
-      value: summary?.inactiveUsers ?? 0,
-      tone: "neutral",
+    yAxis: {
+      min: 0,
+      allowDecimals: false,
+      title: { text: "Incidents", style: { color: chartMutedColor } },
+      gridLineColor: chartGridColor,
+      labels: { style: { color: chartMutedColor } },
     },
-    {
-      label: "Suspended",
-      value: summary?.suspendedUsers ?? 0,
-      tone: "danger",
+    legend: { enabled: false },
+    tooltip: { pointFormat: "<b>{point.y}</b> incidents" },
+    series: [
+      {
+        type: "column",
+        name: "Incidents",
+        borderRadius: 5,
+        colorByPoint: true,
+        data: [
+          summary?.openIncidents ?? 0,
+          summary?.inProgressIncidents ?? 0,
+          summary?.resolvedIncidents ?? 0,
+          summary?.closedIncidents ?? 0,
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
+  const slaExposureChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "bar", height: 300 },
+    colors: ["#dc2626", "#f59e0b", "#64748b"],
+    xAxis: {
+      categories: ["Overdue", "Due Within 24h", "No SLA Set"],
+      labels: { style: { color: chartMutedColor, fontWeight: "700" } },
+      lineColor: chartGridColor,
     },
-  ];
-  const userRoleBreakdown = [
-    {
-      label: "Admins",
-      value: summary?.adminUsers ?? 0,
-      tone: "info",
+    yAxis: {
+      min: 0,
+      allowDecimals: false,
+      title: { text: "Active incidents", style: { color: chartMutedColor } },
+      gridLineColor: chartGridColor,
+      labels: { style: { color: chartMutedColor } },
     },
-    {
-      label: "Security Analysts",
-      value: summary?.securityAnalystUsers ?? 0,
-      tone: "success",
+    legend: { enabled: false },
+    tooltip: { pointFormat: "<b>{point.y}</b> incidents" },
+    series: [
+      {
+        type: "bar",
+        name: "SLA Exposure",
+        borderRadius: 5,
+        colorByPoint: true,
+        data: [
+          summary?.overdueIncidents ?? 0,
+          summary?.dueSoonIncidents ?? 0,
+          summary?.unscheduledActiveIncidents ?? 0,
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
+  const userStatusChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "pie", height: 300 },
+    colors: ["#10b981", "#64748b", "#dc2626"],
+    tooltip: { pointFormat: "<b>{point.y}</b> users ({point.percentage:.0f}%)" },
+    plotOptions: {
+      pie: {
+        innerSize: "60%",
+        dataLabels: {
+          color: chartTextColor,
+          distance: 18,
+          format: "{point.name}: {point.y}",
+          style: {
+            textOutline: "none",
+            fontWeight: "700",
+          },
+        },
+      },
     },
-    {
-      label: "Compliance Officers",
-      value: summary?.complianceOfficerUsers ?? 0,
-      tone: "warning",
+    series: [
+      {
+        type: "pie",
+        name: "Users",
+        data: [
+          ["Active", summary?.activeUsers ?? 0],
+          ["Inactive", summary?.inactiveUsers ?? 0],
+          ["Suspended", summary?.suspendedUsers ?? 0],
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
+  const roleCoverageChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "column", height: 300 },
+    colors: ["#2563eb"],
+    xAxis: {
+      categories: ["Admins", "Security", "Compliance", "Auditors"],
+      labels: { style: { color: chartMutedColor, fontWeight: "700" } },
+      lineColor: chartGridColor,
     },
-    {
-      label: "Auditors",
-      value: summary?.auditorUsers ?? 0,
-      tone: "neutral",
+    yAxis: {
+      min: 0,
+      allowDecimals: false,
+      title: { text: "Users", style: { color: chartMutedColor } },
+      gridLineColor: chartGridColor,
+      labels: { style: { color: chartMutedColor } },
     },
-  ];
+    legend: { enabled: false },
+    tooltip: { pointFormat: "<b>{point.y}</b> users" },
+    series: [
+      {
+        type: "column",
+        name: "Role Coverage",
+        borderRadius: 5,
+        data: [
+          summary?.adminUsers ?? 0,
+          summary?.securityAnalystUsers ?? 0,
+          summary?.complianceOfficerUsers ?? 0,
+          summary?.auditorUsers ?? 0,
+        ],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
 
   return (
     <div className="page-container">
@@ -175,42 +262,42 @@ function DashboardPage() {
       <section className="dashboard-section">
         <div className="dashboard-section-header">
           <div>
-            <span className="badge">Access Control</span>
-            <h2>User Access Summary</h2>
+            <span className="badge">Analytics</span>
+            <h2>Dashboard Charts</h2>
           </div>
         </div>
 
-        <div className="access-summary-grid">
-          <div className="access-summary-panel">
-            <h3>Account Status</h3>
-
-            {userStatusBreakdown.map((item) => (
-              <div className="access-summary-row" key={item.label}>
-                <div>
-                  <span>{item.label}</span>
-                  <small>{formatPercent(item.value, summary?.totalUsers ?? 0)} of users</small>
-                </div>
-                <strong className={`access-summary-value access-summary-${item.tone}`}>
-                  {summary ? item.value : "--"}
-                </strong>
-              </div>
-            ))}
+        <div className="dashboard-charts-grid">
+          <div className="chart-panel chart-panel-wide">
+            <div>
+              <span className="chart-kicker">Incident Flow</span>
+              <h3>Incident Status</h3>
+            </div>
+            <DashboardChart options={incidentStatusChart} />
           </div>
 
-          <div className="access-summary-panel">
-            <h3>Role Coverage</h3>
+          <div className="chart-panel">
+            <div>
+              <span className="chart-kicker">Access Control</span>
+              <h3>Account Status</h3>
+            </div>
+            <DashboardChart options={userStatusChart} />
+          </div>
 
-            {userRoleBreakdown.map((item) => (
-              <div className="access-summary-row" key={item.label}>
-                <div>
-                  <span>{item.label}</span>
-                  <small>{formatPercent(item.value, summary?.totalUsers ?? 0)} of users</small>
-                </div>
-                <strong className={`access-summary-value access-summary-${item.tone}`}>
-                  {summary ? item.value : "--"}
-                </strong>
-              </div>
-            ))}
+          <div className="chart-panel">
+            <div>
+              <span className="chart-kicker">SLA Risk</span>
+              <h3>SLA Exposure</h3>
+            </div>
+            <DashboardChart options={slaExposureChart} />
+          </div>
+
+          <div className="chart-panel chart-panel-wide">
+            <div>
+              <span className="chart-kicker">Access Control</span>
+              <h3>Role Coverage</h3>
+            </div>
+            <DashboardChart options={roleCoverageChart} />
           </div>
         </div>
       </section>
