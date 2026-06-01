@@ -66,6 +66,11 @@ function DashboardPage() {
       tone: "default",
     },
     {
+      label: "Audit Events",
+      value: summary?.totalAuditLogs,
+      tone: "neutral",
+    },
+    {
       label: "Active Work",
       value: summary ? activeIncidents : undefined,
       tone: "info",
@@ -131,6 +136,46 @@ function DashboardPage() {
         type: "areaspline",
         name: "New Incidents",
         data: summary?.incidentTrend?.map((point) => point.count) ?? [],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
+  const auditTrendChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "areaspline", height: 300 },
+    colors: ["#0f766e"],
+    xAxis: {
+      categories: summary?.auditTrend?.map((point) =>
+        new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })
+      ) ?? [],
+      labels: { style: { color: chartMutedColor, fontWeight: "700" } },
+      lineColor: chartGridColor,
+    },
+    yAxis: {
+      min: 0,
+      allowDecimals: false,
+      title: { text: "Audit events", style: { color: chartMutedColor } },
+      gridLineColor: chartGridColor,
+      labels: { style: { color: chartMutedColor } },
+    },
+    legend: { enabled: false },
+    tooltip: { pointFormat: "<b>{point.y}</b> audit events" },
+    plotOptions: {
+      areaspline: {
+        marker: {
+          enabled: true,
+          radius: 4,
+        },
+        fillOpacity: 0.16,
+      },
+    },
+    series: [
+      {
+        type: "areaspline",
+        name: "Audit Events",
+        data: summary?.auditTrend?.map((point) => point.count) ?? [],
       },
     ],
     lang: { noData: emptyChartLabel },
@@ -376,6 +421,14 @@ function DashboardPage() {
               <h3>New Incidents: Last 7 Days</h3>
             </div>
             <DashboardChart options={incidentTrendChart} />
+          </div>
+
+          <div className="chart-panel chart-panel-wide">
+            <div>
+              <span className="chart-kicker">Audit Trail</span>
+              <h3>Audit Events: Last 7 Days</h3>
+            </div>
+            <DashboardChart options={auditTrendChart} />
           </div>
 
           <div className="chart-panel chart-panel-wide">

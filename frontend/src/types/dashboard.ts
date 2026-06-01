@@ -8,6 +8,7 @@ export interface DashboardSummary {
   activeUsers: number;
   inactiveUsers: number;
   suspendedUsers: number;
+  totalAuditLogs: number;
   adminUsers: number;
   securityAnalystUsers: number;
   complianceOfficerUsers: number;
@@ -27,4 +28,5 @@ export interface DashboardSummary {
   assignedActiveIncidents: number;
   unassignedActiveIncidents: number;
   incidentTrend: DashboardTrendPoint[];
+  auditTrend: DashboardTrendPoint[];
 }
