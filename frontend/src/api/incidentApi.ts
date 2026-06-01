@@ -10,11 +10,12 @@ import type {
   IncidentStatus,
   UpdateIncidentRequest,
 } from "../types/incident";
+import type { PagedResponse, PaginationParams } from "../types/pagination";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
-export interface IncidentFilters {
+export interface IncidentFilters extends PaginationParams {
   status?: IncidentStatus | "";
   severity?: IncidentSeverity | "";
   assignedToEmail?: string;
@@ -47,7 +48,7 @@ const cleanUpdateIncidentPayload = (
 
 export const getAllIncidents = async (
   filters: IncidentFilters = {}
-): Promise<IncidentResponse[]> => {
+): Promise<PagedResponse<IncidentResponse>> => {
   const response = await axios.get(`${API_BASE_URL}/incidents`, {
     headers: getAuthHeader(),
     params: {
@@ -55,6 +56,8 @@ export const getAllIncidents = async (
       severity: filters.severity || undefined,
       assignedToEmail: filters.assignedToEmail?.trim() || undefined,
       q: filters.query?.trim() || undefined,
+      page: filters.page,
+      size: filters.size,
     },
   });
 

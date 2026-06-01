@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "../components/PaginationControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   addIncidentNote,
@@ -95,6 +96,10 @@ function IncidentsPage() {
     () => new Set()
   );
   const [bulkStatus, setBulkStatus] = useState<IncidentStatus>("IN_PROGRESS");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalIncidents, setTotalIncidents] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -119,7 +124,7 @@ function IncidentsPage() {
     setMessageType(type);
   };
 
-  const loadIncidents = async () => {
+  const loadIncidents = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
     setMessage("");
     setMessageType("");
@@ -130,8 +135,14 @@ function IncidentsPage() {
         severity: severityFilter,
         assignedToEmail: assignedToFilter,
         query: queryFilter,
+        page: targetPage,
+        size: targetSize,
       });
-      setIncidents(response);
+      setIncidents(response.content);
+      setPage(response.page);
+      setPageSize(response.size);
+      setTotalIncidents(response.totalElements);
+      setTotalPages(response.totalPages);
       setSelectedIncidentIds(new Set());
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load incidents"), "error");
@@ -143,12 +154,18 @@ function IncidentsPage() {
   useEffect(() => {
     getAllIncidents({
       status: statusFilter,
-      severity: severityFilter,
-      assignedToEmail: assignedToFilter,
-      query: queryFilter,
-    })
+        severity: severityFilter,
+        assignedToEmail: assignedToFilter,
+        query: queryFilter,
+        page,
+        size: pageSize,
+      })
       .then((response) => {
-        setIncidents(response);
+        setIncidents(response.content);
+        setPage(response.page);
+        setPageSize(response.size);
+        setTotalIncidents(response.totalElements);
+        setTotalPages(response.totalPages);
         setSelectedIncidentIds(new Set());
       })
       .catch((error: unknown) => {
@@ -157,7 +174,7 @@ function IncidentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [statusFilter, severityFilter, assignedToFilter, queryFilter]);
+  }, [statusFilter, severityFilter, assignedToFilter, queryFilter, page, pageSize]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -178,11 +195,10 @@ function IncidentsPage() {
         (response.assignedToEmail?.toLowerCase().includes(normalizedQuery) ?? false) ||
         (response.dueAt ? formatDueAt(response.dueAt).toLowerCase().includes(normalizedQuery) : false);
 
-      if (matchesStatus && matchesSeverity && matchesAssignee && matchesQuery) {
-        setIncidents((currentIncidents) => [response, ...currentIncidents]);
-      }
-
       setCreateForm(emptyCreateForm);
+      if (matchesStatus && matchesSeverity && matchesAssignee && matchesQuery) {
+        await loadIncidents(0, pageSize);
+      }
       showMessage("Incident created successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to create incident"), "error");
@@ -228,13 +244,9 @@ function IncidentsPage() {
     }
 
     try {
-      const response = await updateIncident(selectedIncident.id, editForm);
-      setIncidents((currentIncidents) =>
-        currentIncidents.map((incident) =>
-          incident.id === response.id ? response : incident
-        )
-      );
+      await updateIncident(selectedIncident.id, editForm);
       closeEdit();
+      await loadIncidents(page, pageSize);
       showMessage("Incident updated successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to update incident"), "error");
@@ -250,9 +262,8 @@ function IncidentsPage() {
 
     try {
       await deleteIncident(incident.id);
-      setIncidents((currentIncidents) =>
-        currentIncidents.filter((currentIncident) => currentIncident.id !== incident.id)
-      );
+      const nextPage = incidents.length === 1 && page > 0 ? page - 1 : page;
+      await loadIncidents(nextPage, pageSize);
       showMessage("Incident deleted successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to delete incident"), "error");
@@ -320,15 +331,7 @@ function IncidentsPage() {
         incidentIds,
         status: bulkStatus,
       });
-      const updatedIncidentMap = new Map(
-        updatedIncidents.map((incident) => [incident.id, incident])
-      );
-
-      setIncidents((currentIncidents) =>
-        currentIncidents.map((incident) =>
-          updatedIncidentMap.get(incident.id) ?? incident
-        )
-      );
+      await loadIncidents(page, pageSize);
       setSelectedIncidentIds(new Set());
       showMessage(`${updatedIncidents.length} incidents updated to ${bulkStatus.replace("_", " ")}`, "success");
     } catch (error: unknown) {
@@ -381,7 +384,7 @@ function IncidentsPage() {
           <button className="btn-secondary" onClick={handleExportCsv} disabled={isExporting}>
             {isExporting ? "Exporting..." : "Export CSV"}
           </button>
-          <button className="btn-secondary" onClick={loadIncidents} disabled={isLoading}>
+          <button className="btn-secondary" onClick={() => loadIncidents()} disabled={isLoading}>
             Refresh
           </button>
         </div>
@@ -394,7 +397,10 @@ function IncidentsPage() {
           <label>Search</label>
           <input
             value={queryFilter}
-            onChange={(event) => setQueryFilter(event.target.value)}
+            onChange={(event) => {
+              setQueryFilter(event.target.value);
+              setPage(0);
+            }}
             placeholder="Search title or description"
           />
         </div>
@@ -403,7 +409,10 @@ function IncidentsPage() {
           <label>Status</label>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as IncidentStatus | "")}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as IncidentStatus | "");
+              setPage(0);
+            }}
           >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((status) => (
@@ -418,9 +427,10 @@ function IncidentsPage() {
           <label>Severity</label>
           <select
             value={severityFilter}
-            onChange={(event) =>
-              setSeverityFilter(event.target.value as IncidentSeverity | "")
-            }
+            onChange={(event) => {
+              setSeverityFilter(event.target.value as IncidentSeverity | "");
+              setPage(0);
+            }}
           >
             <option value="">All severities</option>
             {SEVERITY_OPTIONS.map((severity) => (
@@ -438,6 +448,7 @@ function IncidentsPage() {
             setStatusFilter("");
             setSeverityFilter("");
             setAssignedToFilter("");
+            setPage(0);
           }}
           disabled={!queryFilter && !statusFilter && !severityFilter && !assignedToFilter}
         >
@@ -451,14 +462,20 @@ function IncidentsPage() {
           <input
             type="email"
             value={assignedToFilter}
-            onChange={(event) => setAssignedToFilter(event.target.value)}
+            onChange={(event) => {
+              setAssignedToFilter(event.target.value);
+              setPage(0);
+            }}
             placeholder="analyst@nis2.com"
           />
         </div>
 
         <button
           className="btn-secondary"
-          onClick={() => setAssignedToFilter(currentUser?.email ?? "")}
+          onClick={() => {
+            setAssignedToFilter(currentUser?.email ?? "");
+            setPage(0);
+          }}
           disabled={!currentUser?.email}
         >
           Mine
@@ -674,6 +691,18 @@ function IncidentsPage() {
             </table>
           </div>
         )}
+        <PaginationControls
+          page={page}
+          size={pageSize}
+          totalElements={totalIncidents}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(0);
+          }}
+        />
       </section>
 
       {selectedIncident && editForm && (

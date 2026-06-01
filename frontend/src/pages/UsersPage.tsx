@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "../components/PaginationControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   createUser,
@@ -50,13 +51,17 @@ function UsersPage() {
   const [createForm, setCreateForm] = useState<CreateUserRequest>(emptyCreateForm);
   const [isCreating, setIsCreating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
     setMessageType(type);
   };
 
-  const loadUsers = async () => {
+  const loadUsers = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
     setMessage("");
     setMessageType("");
@@ -66,8 +71,14 @@ function UsersPage() {
         status: statusFilter,
         role: roleFilter,
         query: queryFilter,
+        page: targetPage,
+        size: targetSize,
       });
-      setUsers(response);
+      setUsers(response.content);
+      setPage(response.page);
+      setPageSize(response.size);
+      setTotalUsers(response.totalElements);
+      setTotalPages(response.totalPages);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load users"), "error");
     } finally {
@@ -84,9 +95,15 @@ function UsersPage() {
       status: statusFilter,
       role: roleFilter,
       query: queryFilter,
+      page,
+      size: pageSize,
     })
       .then((response) => {
-        setUsers(response);
+        setUsers(response.content);
+        setPage(response.page);
+        setPageSize(response.size);
+        setTotalUsers(response.totalElements);
+        setTotalPages(response.totalPages);
       })
       .catch((error: unknown) => {
         showMessage(getApiErrorMessage(error, "Failed to load users"), "error");
@@ -94,7 +111,7 @@ function UsersPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, statusFilter, roleFilter, queryFilter]);
+  }, [isAdmin, statusFilter, roleFilter, queryFilter, page, pageSize]);
 
   const openEdit = (user: UserResponse) => {
     setSelectedUser(user);
@@ -132,11 +149,9 @@ function UsersPage() {
     }
 
     try {
-      const response = await updateUser(selectedUser.id, formData);
-      setUsers((currentUsers) =>
-        currentUsers.map((user) => (user.id === response.id ? response : user))
-      );
+      await updateUser(selectedUser.id, formData);
       closeEdit();
+      await loadUsers(page, pageSize);
       showMessage("User updated successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to update user"), "error");
@@ -152,9 +167,8 @@ function UsersPage() {
 
     try {
       await deleteUser(user.id);
-      setUsers((currentUsers) =>
-        currentUsers.filter((currentUser) => currentUser.id !== user.id)
-      );
+      const nextPage = users.length === 1 && page > 0 ? page - 1 : page;
+      await loadUsers(nextPage, pageSize);
       showMessage("User deleted successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to delete user"), "error");
@@ -168,7 +182,7 @@ function UsersPage() {
     try {
       await createUser(createForm);
       setCreateForm(emptyCreateForm);
-      await loadUsers();
+      await loadUsers(0, pageSize);
       showMessage("User created successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to create user"), "error");
@@ -240,7 +254,7 @@ function UsersPage() {
             {isExporting ? "Exporting..." : "Export CSV"}
           </button>
 
-          <button className="btn-secondary" onClick={loadUsers} disabled={isLoading}>
+          <button className="btn-secondary" onClick={() => loadUsers()} disabled={isLoading}>
             Refresh
           </button>
         </div>
@@ -253,7 +267,10 @@ function UsersPage() {
           <label>Search</label>
           <input
             value={queryFilter}
-            onChange={(event) => setQueryFilter(event.target.value)}
+            onChange={(event) => {
+              setQueryFilter(event.target.value);
+              setPage(0);
+            }}
             placeholder="Search name or email"
           />
         </div>
@@ -262,7 +279,10 @@ function UsersPage() {
           <label>Status</label>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as UserStatus | "")}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as UserStatus | "");
+              setPage(0);
+            }}
           >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((status) => (
@@ -277,7 +297,10 @@ function UsersPage() {
           <label>Role</label>
           <select
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value as RoleName | "")}
+            onChange={(event) => {
+              setRoleFilter(event.target.value as RoleName | "");
+              setPage(0);
+            }}
           >
             <option value="">All roles</option>
             {ROLE_OPTIONS.map((role) => (
@@ -294,6 +317,7 @@ function UsersPage() {
             setQueryFilter("");
             setStatusFilter("");
             setRoleFilter("");
+            setPage(0);
           }}
           disabled={!queryFilter && !statusFilter && !roleFilter}
         >
@@ -422,6 +446,18 @@ function UsersPage() {
             </table>
           </div>
         )}
+        <PaginationControls
+          page={page}
+          size={pageSize}
+          totalElements={totalUsers}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(0);
+          }}
+        />
       </section>
 
       {selectedUser && formData && (

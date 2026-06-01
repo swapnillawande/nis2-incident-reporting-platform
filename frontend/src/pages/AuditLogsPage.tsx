@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PaginationControls from "../components/PaginationControls";
 import { exportAuditLogsCsv, getAuditLogs } from "../api/auditApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import type { AuditLogResponse } from "../types/audit";
@@ -33,13 +34,17 @@ function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState("");
   const [queryFilter, setQueryFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalAuditLogs, setTotalAuditLogs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
     setMessageType(type);
   };
 
-  const loadAuditLogs = async () => {
+  const loadAuditLogs = async (targetPage = page, targetSize = pageSize) => {
     setIsLoading(true);
     setMessage("");
     setMessageType("");
@@ -49,8 +54,14 @@ function AuditLogsPage() {
         action: actionFilter,
         resourceType: resourceTypeFilter,
         query: queryFilter,
+        page: targetPage,
+        size: targetSize,
       });
-      setAuditLogs(response);
+      setAuditLogs(response.content);
+      setPage(response.page);
+      setPageSize(response.size);
+      setTotalAuditLogs(response.totalElements);
+      setTotalPages(response.totalPages);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
     } finally {
@@ -94,9 +105,15 @@ function AuditLogsPage() {
       action: actionFilter,
       resourceType: resourceTypeFilter,
       query: queryFilter,
+      page,
+      size: pageSize,
     })
       .then((response) => {
-        setAuditLogs(response);
+        setAuditLogs(response.content);
+        setPage(response.page);
+        setPageSize(response.size);
+        setTotalAuditLogs(response.totalElements);
+        setTotalPages(response.totalPages);
       })
       .catch((error: unknown) => {
         showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
@@ -104,7 +121,7 @@ function AuditLogsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter]);
+  }, [isAdmin, actionFilter, resourceTypeFilter, queryFilter, page, pageSize]);
 
   if (!isAdmin) {
     return (
@@ -135,7 +152,7 @@ function AuditLogsPage() {
           <button className="btn-secondary" onClick={handleExportCsv} disabled={isExporting}>
             {isExporting ? "Exporting..." : "Export CSV"}
           </button>
-          <button className="btn-secondary" onClick={loadAuditLogs} disabled={isLoading}>
+          <button className="btn-secondary" onClick={() => loadAuditLogs()} disabled={isLoading}>
             Refresh
           </button>
         </div>
@@ -148,7 +165,10 @@ function AuditLogsPage() {
           <label>Search</label>
           <input
             value={queryFilter}
-            onChange={(event) => setQueryFilter(event.target.value)}
+            onChange={(event) => {
+              setQueryFilter(event.target.value);
+              setPage(0);
+            }}
             placeholder="Actor, details, or resource ID"
           />
         </div>
@@ -157,7 +177,10 @@ function AuditLogsPage() {
           <label>Action</label>
           <select
             value={actionFilter}
-            onChange={(event) => setActionFilter(event.target.value)}
+            onChange={(event) => {
+              setActionFilter(event.target.value);
+              setPage(0);
+            }}
           >
             <option value="">All actions</option>
             {ACTION_OPTIONS.map((action) => (
@@ -172,7 +195,10 @@ function AuditLogsPage() {
           <label>Resource</label>
           <select
             value={resourceTypeFilter}
-            onChange={(event) => setResourceTypeFilter(event.target.value)}
+            onChange={(event) => {
+              setResourceTypeFilter(event.target.value);
+              setPage(0);
+            }}
           >
             <option value="">All resources</option>
             {RESOURCE_TYPE_OPTIONS.map((resourceType) => (
@@ -189,6 +215,7 @@ function AuditLogsPage() {
             setQueryFilter("");
             setActionFilter("");
             setResourceTypeFilter("");
+            setPage(0);
           }}
           disabled={!queryFilter && !actionFilter && !resourceTypeFilter}
         >
@@ -236,6 +263,18 @@ function AuditLogsPage() {
             </table>
           </div>
         )}
+        <PaginationControls
+          page={page}
+          size={pageSize}
+          totalElements={totalAuditLogs}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(0);
+          }}
+        />
       </section>
     </div>
   );
