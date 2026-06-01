@@ -15,6 +15,9 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -67,6 +70,37 @@ public class IncidentController {
         );
 
         return incidentService.getIncidents(status, severity, assignedToEmail, query);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> exportIncidents(
+            @RequestParam(name = "status", required = false) IncidentStatus status,
+            @RequestParam(name = "severity", required = false) IncidentSeverity severity,
+            @RequestParam(name = "assignedToEmail", required = false) String assignedToEmail,
+            @RequestParam(name = "q", required = false) String query,
+            Authentication authentication) {
+
+        logger.info(
+                "GET /incidents/export called by {}. status: {}, severity: {}, assignedToEmail: {}, query: {}",
+                authentication.getName(),
+                status,
+                severity,
+                assignedToEmail,
+                query
+        );
+
+        String csv = incidentService.exportIncidentsCsv(
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                authentication.getName()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=incidents-export.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
     }
 
     @GetMapping("/{incidentId}")

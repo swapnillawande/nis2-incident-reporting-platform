@@ -18,6 +18,13 @@ public interface IncidentService {
             String assignedToEmail,
             String query);
 
+    String exportIncidentsCsv(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String assignedToEmail,
+            String query,
+            String actorEmail);
+
     IncidentResponseDto getIncidentById(Long incidentId);
 
     IncidentResponseDto updateIncidentById(Long incidentId, UpdateIncidentRequestDto request, String actorEmail);

@@ -19,7 +19,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class IncidentServiceImpl implements IncidentService {
@@ -81,6 +85,39 @@ public class IncidentServiceImpl implements IncidentService {
                 .stream()
                 .map(IncidentMapperDto::toResponse)
                 .toList();
+    }
+
+    @Override
+    public String exportIncidentsCsv(
+            IncidentStatus status,
+            IncidentSeverity severity,
+            String assignedToEmail,
+            String query,
+            String actorEmail) {
+
+        logger.info(
+                "Exporting incidents CSV. status: {}, severity: {}, assignedToEmail: {}, query: {}, actor: {}",
+                status,
+                severity,
+                assignedToEmail,
+                query,
+                actorEmail
+        );
+
+        List<Incident> incidents = incidentRepository.findAll(
+                buildIncidentSpecification(status, severity, assignedToEmail, query),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        auditLogService.record(
+                "INCIDENTS_EXPORTED",
+                "INCIDENT",
+                null,
+                actorEmail,
+                "Incidents exported to CSV. Count: " + incidents.size()
+        );
+
+        return buildIncidentCsv(incidents);
     }
 
     @Override
@@ -223,5 +260,50 @@ public class IncidentServiceImpl implements IncidentService {
 
             return predicate;
         };
+    }
+
+    private String buildIncidentCsv(List<Incident> incidents) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("ID,Title,Description,Severity,Status,Reported By,Assigned To,SLA Due,Created At,Updated At\n");
+
+        incidents.forEach(incident -> csv.append(toCsvRow(Arrays.asList(
+                incident.getId(),
+                incident.getTitle(),
+                incident.getDescription(),
+                incident.getSeverity(),
+                incident.getStatus(),
+                incident.getReportedByEmail(),
+                incident.getAssignedToEmail(),
+                incident.getDueAt(),
+                incident.getCreatedAt(),
+                incident.getUpdatedAt()
+        ))).append("\n"));
+
+        return csv.toString();
+    }
+
+    private String toCsvRow(List<Object> values) {
+        return values.stream()
+                .map(this::escapeCsvValue)
+                .collect(Collectors.joining(","));
+    }
+
+    private String escapeCsvValue(Object value) {
+        String text = Objects.toString(formatCsvValue(value), "");
+        boolean needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r");
+
+        if (!needsQuotes) {
+            return text;
+        }
+
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
+    private Object formatCsvValue(Object value) {
+        if (value instanceof LocalDateTime dateTime) {
+            return dateTime.toString();
+        }
+
+        return value;
     }
 }

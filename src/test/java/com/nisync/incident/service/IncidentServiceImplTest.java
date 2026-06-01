@@ -25,8 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -179,6 +181,35 @@ class IncidentServiceImplTest {
 
         assertEquals(1L, response.getId());
         verify(incidentRepository).delete(incident);
+    }
+
+    @Test
+    void shouldExportIncidentsCsvSuccessfully() {
+        Incident incident = buildIncident(1L, "CSV Incident");
+        incident.setDescription("Description with comma, and \"quote\".");
+
+        when(incidentRepository.findAll(anyIncidentSpecification(), anyCreatedAtDescSort()))
+                .thenReturn(List.of(incident));
+
+        String csv = incidentService.exportIncidentsCsv(
+                IncidentStatus.OPEN,
+                IncidentSeverity.MEDIUM,
+                "analyst@nis2.com",
+                "csv",
+                "admin@nis2.com"
+        );
+
+        String[] lines = csv.split("\\n");
+
+        assertEquals("ID,Title,Description,Severity,Status,Reported By,Assigned To,SLA Due,Created At,Updated At", lines[0]);
+        assertTrue(lines[1].contains("\"Description with comma, and \"\"quote\"\".\""));
+        verify(auditLogService).record(
+                eq("INCIDENTS_EXPORTED"),
+                eq("INCIDENT"),
+                eq(null),
+                eq("admin@nis2.com"),
+                eq("Incidents exported to CSV. Count: 1")
+        );
     }
 
     private Incident buildIncident(Long id, String title) {
