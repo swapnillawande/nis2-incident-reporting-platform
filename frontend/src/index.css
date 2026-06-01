@@ -754,6 +754,48 @@ button:disabled {
   border-radius: 14px;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+
+.pagination-summary {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pagination-summary strong,
+.pagination-page {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pagination-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pagination-size select {
+  min-width: 76px;
+}
+
 .incident-form { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; }
 .incident-form .btn-primary { grid-column: 1 / -1; }
 
@@ -923,6 +965,8 @@ button:disabled {
   .bulk-action-bar { align-items: stretch; flex-direction: column; }
   .bulk-action-controls { justify-content: stretch; }
   .bulk-action-controls select, .bulk-action-controls button { width: 100%; }
+  .pagination-bar { align-items: stretch; flex-direction: column; }
+  .pagination-actions { justify-content: space-between; }
   .recent-incident-item { grid-template-columns: 1fr; align-items: start; }
   .recent-incident-meta { justify-content: flex-start; max-width: none; }
   .recent-incident-meta small { text-align: left; }

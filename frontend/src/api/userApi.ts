@@ -9,6 +9,7 @@ import type {
   RoleName,
   UserStatus,
 } from "../types/user";
+import type { PagedResponse, PaginationParams } from "../types/pagination";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
@@ -59,7 +60,7 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
   return response.data;
 };
 
-export interface UserFilters {
+export interface UserFilters extends PaginationParams {
   status?: UserStatus | "";
   role?: RoleName | "";
   query?: string;
@@ -67,13 +68,15 @@ export interface UserFilters {
 
 export const getAllUsers = async (
   filters: UserFilters = {}
-): Promise<UserResponse[]> => {
+): Promise<PagedResponse<UserResponse>> => {
   const response = await axios.get(`${API_BASE_URL}/users`, {
     headers: getAuthHeader(),
     params: {
       status: filters.status || undefined,
       role: filters.role || undefined,
       q: filters.query?.trim() || undefined,
+      page: filters.page,
+      size: filters.size,
     },
   });
 
