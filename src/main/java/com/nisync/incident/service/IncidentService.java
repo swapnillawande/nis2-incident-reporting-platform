@@ -1,5 +1,6 @@
 package com.nisync.incident.service;
 
+import com.nisync.common.response.PagedResponseDto;
 import com.nisync.incident.dto.CreateIncidentRequestDto;
 import com.nisync.incident.dto.IncidentResponseDto;
 import com.nisync.incident.dto.UpdateIncidentRequestDto;
@@ -12,11 +13,13 @@ public interface IncidentService {
 
     IncidentResponseDto createIncident(CreateIncidentRequestDto request, String reportedByEmail);
 
-    List<IncidentResponseDto> getIncidents(
+    PagedResponseDto<IncidentResponseDto> getIncidents(
             IncidentStatus status,
             IncidentSeverity severity,
             String assignedToEmail,
-            String query);
+            String query,
+            int page,
+            int size);
 
     String exportIncidentsCsv(
             IncidentStatus status,

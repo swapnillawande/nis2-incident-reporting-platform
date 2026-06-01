@@ -4,6 +4,7 @@ import com.nisync.audit.dto.AuditLogResponseDto;
 import com.nisync.audit.entity.AuditLog;
 import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.audit.service.impl.AuditLogServiceImpl;
+import com.nisync.common.response.PagedResponseDto;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,11 +75,11 @@ class AuditLogServiceImplTest {
         when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(auditLog)));
 
-        List<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(null, null, null);
+        PagedResponseDto<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(null, null, null, 0, 10);
 
-        assertEquals(1, response.size());
-        assertEquals("USER_LOGIN", response.get(0).getAction());
-        assertEquals("admin@nis2.com", response.get(0).getActorEmail());
+        assertEquals(1, response.getContent().size());
+        assertEquals("USER_LOGIN", response.getContent().get(0).getAction());
+        assertEquals("admin@nis2.com", response.getContent().get(0).getActorEmail());
     }
 
     @Test
@@ -95,15 +96,17 @@ class AuditLogServiceImplTest {
         when(auditLogRepository.findAll(anyAuditLogSpecification(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(auditLog)));
 
-        List<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(
+        PagedResponseDto<AuditLogResponseDto> response = auditLogService.getRecentAuditLogs(
                 "INCIDENT_UPDATED",
                 "INCIDENT",
-                "analyst"
+                "analyst",
+                0,
+                10
         );
 
-        assertEquals(1, response.size());
-        assertEquals("INCIDENT_UPDATED", response.get(0).getAction());
-        assertEquals("INCIDENT", response.get(0).getResourceType());
+        assertEquals(1, response.getContent().size());
+        assertEquals("INCIDENT_UPDATED", response.getContent().get(0).getAction());
+        assertEquals("INCIDENT", response.getContent().get(0).getResourceType());
     }
 
     @Test
