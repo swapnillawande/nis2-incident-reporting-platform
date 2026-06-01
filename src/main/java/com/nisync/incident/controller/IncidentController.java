@@ -11,6 +11,8 @@ import com.nisync.incident.note.dto.CreateIncidentNoteRequestDto;
 import com.nisync.incident.note.dto.IncidentNoteResponseDto;
 import com.nisync.incident.note.service.IncidentNoteService;
 import com.nisync.incident.service.IncidentService;
+import com.nisync.incident.timeline.dto.IncidentTimelineItemDto;
+import com.nisync.incident.timeline.service.IncidentTimelineService;
 
 import jakarta.validation.Valid;
 
@@ -47,6 +49,9 @@ public class IncidentController {
 
     @Autowired
     private IncidentNoteService incidentNoteService;
+
+    @Autowired
+    private IncidentTimelineService incidentTimelineService;
 
     @PostMapping
     public IncidentResponseDto createIncident(
@@ -192,6 +197,13 @@ public class IncidentController {
         logger.info("GET /incidents/{}/notes called", incidentId);
 
         return incidentNoteService.getNotesByIncidentId(incidentId);
+    }
+
+    @GetMapping("/{incidentId}/timeline")
+    public List<IncidentTimelineItemDto> getIncidentTimeline(@PathVariable("incidentId") Long incidentId) {
+        logger.info("GET /incidents/{}/timeline called", incidentId);
+
+        return incidentTimelineService.getTimelineByIncidentId(incidentId);
     }
 
     @PostMapping("/{incidentId}/notes")

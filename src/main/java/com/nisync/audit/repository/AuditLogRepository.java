@@ -10,4 +10,6 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSpecificationExecutor<AuditLog> {
     List<AuditLog> findByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(LocalDateTime createdAt);
+
+    List<AuditLog> findByResourceTypeAndResourceIdOrderByCreatedAtDesc(String resourceType, String resourceId);
 }
