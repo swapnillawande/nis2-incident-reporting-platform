@@ -58,6 +58,8 @@ export const getAllIncidents = async (
       q: filters.query?.trim() || undefined,
       page: filters.page,
       size: filters.size,
+      sortBy: filters.sortBy,
+      sortDir: filters.sortDir,
     },
   });
 

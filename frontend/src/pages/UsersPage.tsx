@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/PaginationControls";
+import SortControls from "../components/SortControls";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   createUser,
@@ -15,6 +16,7 @@ import type {
   UserResponse,
   UserStatus,
 } from "../types/user";
+import type { SortDirection } from "../types/pagination";
 
 const ROLE_OPTIONS: RoleName[] = [
   "ADMIN",
@@ -24,6 +26,13 @@ const ROLE_OPTIONS: RoleName[] = [
 ];
 
 const STATUS_OPTIONS: UserStatus[] = ["ACTIVE", "INACTIVE", "SUSPENDED"];
+const USER_SORT_OPTIONS = [
+  { label: "Created", value: "createdAt" },
+  { label: "Name", value: "fullName" },
+  { label: "Email", value: "email" },
+  { label: "Status", value: "status" },
+  { label: "Updated", value: "updatedAt" },
+];
 
 const emptyCreateForm: CreateUserRequest = {
   fullName: "",
@@ -55,6 +64,8 @@ function UsersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMessage(text);
@@ -73,6 +84,8 @@ function UsersPage() {
         query: queryFilter,
         page: targetPage,
         size: targetSize,
+        sortBy,
+        sortDir,
       });
       setUsers(response.content);
       setPage(response.page);
@@ -97,6 +110,8 @@ function UsersPage() {
       query: queryFilter,
       page,
       size: pageSize,
+      sortBy,
+      sortDir,
     })
       .then((response) => {
         setUsers(response.content);
@@ -111,7 +126,7 @@ function UsersPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isAdmin, statusFilter, roleFilter, queryFilter, page, pageSize]);
+  }, [isAdmin, statusFilter, roleFilter, queryFilter, page, pageSize, sortBy, sortDir]);
 
   const openEdit = (user: UserResponse) => {
     setSelectedUser(user);
@@ -323,6 +338,22 @@ function UsersPage() {
         >
           Clear Filters
         </button>
+      </section>
+
+      <section className="sort-bar">
+        <SortControls
+          options={USER_SORT_OPTIONS}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSortByChange={(nextSortBy) => {
+            setSortBy(nextSortBy);
+            setPage(0);
+          }}
+          onSortDirChange={(nextSortDir) => {
+            setSortDir(nextSortDir);
+            setPage(0);
+          }}
+        />
       </section>
 
       <section className="table-panel incident-create-panel !border-blue-100 !bg-gradient-to-br !from-white !via-sky-50 !to-emerald-50 dark:!from-slate-900 dark:!via-slate-900 dark:!to-slate-800 dark:!border-slate-700">

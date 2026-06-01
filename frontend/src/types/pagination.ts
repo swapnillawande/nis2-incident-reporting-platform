@@ -11,4 +11,8 @@ export interface PagedResponse<T> {
 export interface PaginationParams {
   page?: number;
   size?: number;
+  sortBy?: string;
+  sortDir?: SortDirection;
 }
+
+export type SortDirection = "asc" | "desc";
