@@ -95,6 +95,46 @@ function DashboardPage() {
   const chartMutedColor = "#64748b";
   const chartGridColor = "rgba(148, 163, 184, 0.24)";
   const emptyChartLabel = summary ? undefined : "Loading dashboard data";
+  const incidentTrendChart = useMemo<Highcharts.Options>(() => ({
+    chart: { type: "areaspline", height: 300 },
+    colors: ["#2563eb"],
+    xAxis: {
+      categories: summary?.incidentTrend?.map((point) =>
+        new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })
+      ) ?? [],
+      labels: { style: { color: chartMutedColor, fontWeight: "700" } },
+      lineColor: chartGridColor,
+    },
+    yAxis: {
+      min: 0,
+      allowDecimals: false,
+      title: { text: "New incidents", style: { color: chartMutedColor } },
+      gridLineColor: chartGridColor,
+      labels: { style: { color: chartMutedColor } },
+    },
+    legend: { enabled: false },
+    tooltip: { pointFormat: "<b>{point.y}</b> incidents created" },
+    plotOptions: {
+      areaspline: {
+        marker: {
+          enabled: true,
+          radius: 4,
+        },
+        fillOpacity: 0.16,
+      },
+    },
+    series: [
+      {
+        type: "areaspline",
+        name: "New Incidents",
+        data: summary?.incidentTrend?.map((point) => point.count) ?? [],
+      },
+    ],
+    lang: { noData: emptyChartLabel },
+  }), [summary, emptyChartLabel]);
   const incidentStatusChart = useMemo<Highcharts.Options>(() => ({
     chart: { type: "column", height: 300 },
     colors: ["#2563eb", "#f59e0b", "#10b981", "#64748b"],
@@ -330,6 +370,14 @@ function DashboardPage() {
         </div>
 
         <div className="dashboard-charts-grid">
+          <div className="chart-panel chart-panel-wide">
+            <div>
+              <span className="chart-kicker">Incident Trend</span>
+              <h3>New Incidents: Last 7 Days</h3>
+            </div>
+            <DashboardChart options={incidentTrendChart} />
+          </div>
+
           <div className="chart-panel chart-panel-wide">
             <div>
               <span className="chart-kicker">Incident Flow</span>

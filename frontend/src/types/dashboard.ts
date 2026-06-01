@@ -1,3 +1,8 @@
+export interface DashboardTrendPoint {
+  date: string;
+  count: number;
+}
+
 export interface DashboardSummary {
   totalUsers: number;
   activeUsers: number;
@@ -21,4 +26,5 @@ export interface DashboardSummary {
   unscheduledActiveIncidents: number;
   assignedActiveIncidents: number;
   unassignedActiveIncidents: number;
+  incidentTrend: DashboardTrendPoint[];
 }
