@@ -4,6 +4,7 @@ import random
 import os
 
 SEED_DATA = os.getenv("SEED_DATA", "false").lower() == "true"
+DELETE_DATA = os.getenv("DELETE_DATA", "false").lower() == "true"
 
 if not SEED_DATA:
     print("🚫 Seeding disabled")
@@ -22,11 +23,21 @@ conn = psycopg2.connect(
 conn.autocommit = False
 cursor = conn.cursor()
 
-# Your real enum roles from RoleName
 ROLE_NAMES = ["ADMIN", "SECURITY_ANALYST", "COMPLIANCE_OFFICER", "AUDITOR"]
 
 try:
     print("🚀 Starting seeding process...")
+
+    # -----------------------------
+    # 🔥 DELETE DATA (NEW PART)
+    # -----------------------------
+    if DELETE_DATA:
+        print("🧹 DELETE_DATA enabled → clearing users...")
+
+        cursor.execute("DELETE FROM user_roles;")
+        cursor.execute("DELETE FROM users;")
+
+        print("✅ Old user data cleared")
 
     # -----------------------------
     # 1. CREATE USERS
@@ -45,16 +56,14 @@ try:
             "ACTIVE"
         ))
 
-        user_id = cursor.fetchone()[0]
-        user_ids.append(user_id)
+        user_ids.append(cursor.fetchone()[0])
 
     print(f"✅ Created {len(user_ids)} users")
 
     # -----------------------------
-    # 2. INSERT USER ROLES (FIXED PART)
+    # 2. ASSIGN ROLES
     # -----------------------------
     for user_id in user_ids:
-        # each user gets 1–2 roles randomly
         assigned_roles = random.sample(ROLE_NAMES, k=random.randint(1, 2))
 
         for role in assigned_roles:
@@ -64,8 +73,9 @@ try:
             """, (user_id, role))
 
     print("✅ Assigned roles to users")
+
     # -----------------------------
-    # SUCCESS COMMIT
+    # COMMIT
     # -----------------------------
     conn.commit()
     print("🎉 Seeding completed successfully!")
