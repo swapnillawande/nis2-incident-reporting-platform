@@ -4,17 +4,17 @@ import time
 from faker import Faker
 import os
 
+
+from datetime import datetime, timedelta
+
 SEED_DATA = os.getenv("SEED_DATA", "false").lower() == "true"
 
 if not SEED_DATA:
     print("🚫 Seeding disabled")
     exit(0)
 
-fake = Faker()
 
-# =========================
-# DB CONFIG (Docker-safe)
-# =========================
+
 DB_CONFIG = {
     "host": "postgres",
     "database": "nis2_platform",
@@ -23,103 +23,124 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# =========================
-# MATCHING JAVA ENUMS
-# =========================
+conn = psycopg2.connect(**DB_CONFIG)
+conn.autocommit = False
+cursor = conn.cursor()
+
+if os.getenv("DELETE_DATA", "false").lower() == "true":
+    print("🧹 Clearing incidents...")
+
+    cursor.execute("""
+        TRUNCATE TABLE incidents RESTART IDENTITY CASCADE;
+    """)
+
+    print("✅ Incidents cleared")
+fake = Faker()
+
+# MUST match your Java enums EXACTLY
 SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
-STATUSES = [
-    "OPEN",
-    "IN_PROGRESS",
-    "RESOLVED",
-    "CLOSED"
+STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]
+
+ANALYSTS = [
+    "alice@nisync.com",
+    "bob@nisync.com",
+    "charlie@nisync.com",
+    "diana@nisync.com"
 ]
 
-# =========================
-# INCIDENT TEMPLATES
-# =========================
 TITLES = [
     "Multiple failed login attempts detected",
-    "Unusual spike in API latency",
+    "API latency spike observed",
     "Database connection pool exhaustion",
-    "Unauthorized privilege escalation attempt",
-    "Suspicious outbound network traffic",
-    "High CPU usage on backend service",
-    "Memory leak detected in authentication service",
-    "Kafka consumer lag increasing rapidly",
-    "Possible DDoS attack detected",
-    "Unexpected service restart in production",
+    "Unauthorized access attempt blocked",
+    "High CPU usage on service",
+    "Memory leak detected in auth service",
+    "Suspicious outbound traffic detected",
+    "Service restart in production cluster",
+    "Kafka lag increasing rapidly",
+    "Potential DDoS pattern detected"
 ]
 
 DESCRIPTIONS = [
-    "Security monitoring detected abnormal authentication behavior.",
+    "Security system detected abnormal authentication behavior.",
     "Observability stack reports degraded system performance.",
-    "Repeated failures indicate potential brute-force attack.",
-    "Infrastructure metrics show instability in backend services.",
-    "Network anomalies detected requiring investigation.",
-    "Tracing shows increased latency across services.",
-    "Error rates exceeded safe thresholds.",
-    "Resource utilization has spiked beyond limits.",
+    "Error rates exceeded acceptable thresholds.",
+    "Infrastructure metrics show instability.",
+    "Network traffic anomaly detected requiring investigation.",
+    "Service health checks failing intermittently."
 ]
 
-# =========================
-# CONNECT WITH RETRY
-# =========================
+
 def connect():
-    for i in range(15):
+    for _ in range(10):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             print("✅ Connected to PostgreSQL")
             return conn
         except Exception as e:
-            print(f"⏳ Waiting for DB... ({i+1}/15)")
-            time.sleep(3)
+            print("⏳ Waiting for DB...")
+            print(e)
+    raise Exception("DB connection failed")
 
-    raise Exception("❌ DB connection failed after retries")
 
-# =========================
-# INCIDENT GENERATOR
-# =========================
-def generate_incident():
-    return (
-        random.choice(TITLES),
-        random.choice(DESCRIPTIONS),
-        random.choice(SEVERITIES),
-        random.choice(STATUSES),
-        fake.email()
-    )
+def generate_due_date(severity):
+    now = datetime.utcnow()
 
-# =========================
-# MAIN SEED LOGIC
-# =========================
+    # SLA logic (real SOC behavior)
+    if severity == "CRITICAL":
+        return now + timedelta(minutes=15)
+    elif severity == "HIGH":
+        return now + timedelta(hours=4)
+    elif severity == "MEDIUM":
+        return now + timedelta(hours=24)
+    else:
+        return now + timedelta(days=3)
+
+
 def main():
     conn = connect()
     cur = conn.cursor()
 
     try:
-        # Safe insert query
+        print("🚀 Starting incident seeding...")
+
         insert_query = """
-            INSERT INTO incidents
-            (title, description, severity, status, reported_by_email, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+            INSERT INTO incidents (
+                title,
+                description,
+                severity,
+                status,
+                reported_by_email,
+                assigned_to_email,
+                due_at,
+                created_at,
+                updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         """
 
         incidents = []
 
-        # =========================
-        # Generate 30 incidents
-        # =========================
+        # 30 incidents guaranteed coverage
         for _ in range(30):
-            incidents.append(generate_incident())
+            severity = random.choice(SEVERITIES)
 
-        # =========================
-        # INSERT BATCH
-        # =========================
+            incidents.append((
+                random.choice(TITLES),
+                random.choice(DESCRIPTIONS),
+                severity,
+                random.choice(STATUSES),
+                fake.email(),
+                random.choice(ANALYSTS),
+                generate_due_date(severity)
+            ))
+
         cur.executemany(insert_query, incidents)
-
         conn.commit()
 
-        print(f"🚀 Successfully inserted {len(incidents)} incidents!")
+        print(f"✅ Inserted {len(incidents)} incidents successfully!")
+        print("🎉 Seeding completed!")
 
     except Exception as e:
         conn.rollback()
@@ -129,9 +150,8 @@ def main():
     finally:
         cur.close()
         conn.close()
+        print("🔒 Connection closed")
 
-# =========================
-# RUN
-# =========================
+
 if __name__ == "__main__":
     main()

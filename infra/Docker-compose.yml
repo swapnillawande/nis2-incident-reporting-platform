@@ -22,8 +22,7 @@ services:
 
 
   backend:
-    build:
-      context: ..
+    image: infra-backend:latest
     container_name: nis2-backend
     restart: always
     ports:
@@ -41,8 +40,7 @@ services:
 
 
   frontend:
-    build:
-      context: ../frontend
+    image: infra-frontend:latest
     container_name: nis2-frontend
     ports:
       - "5173:5173"
@@ -53,8 +51,7 @@ services:
 
 
   seeder-users:
-    build:
-      context: ../infra/scripts
+    image: infra-seeder-users:latest
     container_name: nis2-seeder-users
     depends_on:
       backend:
@@ -68,12 +65,12 @@ services:
       DB_NAME: nis2_platform
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DELETE_DATA: "false"
       SEED_DATA: "false"
 
 
   seeder-incidents:
-    build:
-      context: ../infra/scripts
+    image: infra-seeder-incidents:latest
     container_name: nis2-seeder-incidents
     depends_on:
       seeder-users:
@@ -81,17 +78,18 @@ services:
     networks:
       - nis2-network
     restart: "no"
-    command: ["sh", "-c", "sleep 30 && python sql-incidents.py"]
+    command: ["sh", "-c", "sleep 10 && python sql-incidents.py"]
     environment:
       DB_HOST: postgres
       DB_NAME: nis2_platform
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DELETE_DATA: "false"
       SEED_DATA: "false"
-
 
 volumes:
   postgres_data:
 
 networks:
   nis2-network:
+    driver: bridge
