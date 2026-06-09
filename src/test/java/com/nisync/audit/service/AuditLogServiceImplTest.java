@@ -1,6 +1,7 @@
 package com.nisync.audit.service;
 
 import com.nisync.audit.dto.AuditLogResponseDto;
+import com.nisync.audit.dto.AuditLogSummaryDto;
 import com.nisync.audit.entity.AuditLog;
 import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.audit.service.impl.AuditLogServiceImpl;
@@ -151,6 +152,49 @@ class AuditLogServiceImplTest {
         assertTrue(lines[1].contains("2026-06-01T08:30"));
     }
 
+    @Test
+    void shouldReturnAuditLogSummaryForFilteredLogs() {
+        AuditLog newestLog = buildAuditLog(
+                4L,
+                "INCIDENT_UPDATED",
+                "INCIDENT",
+                "admin@nis2.com",
+                LocalDateTime.of(2026, 6, 9, 14, 30)
+        );
+        AuditLog olderLog = buildAuditLog(
+                5L,
+                "INCIDENT_CREATED",
+                "INCIDENT",
+                "analyst@nis2.com",
+                LocalDateTime.of(2026, 6, 9, 12, 15)
+        );
+        AuditLog sameActorLog = buildAuditLog(
+                6L,
+                "USER_LOGIN",
+                "USER",
+                "ADMIN@nis2.com",
+                LocalDateTime.of(2026, 6, 9, 8, 0)
+        );
+
+        when(auditLogRepository.findAll(anyAuditLogSpecification(), anyCreatedAtDescSort()))
+                .thenReturn(List.of(newestLog, olderLog, sameActorLog));
+
+        AuditLogSummaryDto response = auditLogService.getAuditLogSummary(
+                null,
+                null,
+                "incident",
+                LocalDateTime.of(2026, 6, 9, 0, 0),
+                LocalDateTime.of(2026, 6, 9, 23, 59)
+        );
+
+        assertEquals(3, response.getTotalLogs());
+        assertEquals(2, response.getUniqueActors());
+        assertEquals(LocalDateTime.of(2026, 6, 9, 14, 30), response.getLatestActivityAt());
+        assertEquals(1, response.getActionCounts().get("INCIDENT_UPDATED"));
+        assertEquals(2, response.getResourceTypeCounts().get("INCIDENT"));
+        assertEquals(1, response.getResourceTypeCounts().get("USER"));
+    }
+
     private Specification<AuditLog> anyAuditLogSpecification() {
         return any();
     }
@@ -168,5 +212,22 @@ class AuditLogServiceImplTest {
     private Pageable anyActionAscPageable() {
         return argThat(pageable -> pageable.getSort().getOrderFor("action") != null
                 && Sort.Direction.ASC.equals(pageable.getSort().getOrderFor("action").getDirection()));
+    }
+
+    private AuditLog buildAuditLog(
+            Long id,
+            String action,
+            String resourceType,
+            String actorEmail,
+            LocalDateTime createdAt) {
+        AuditLog auditLog = new AuditLog();
+        auditLog.setId(id);
+        auditLog.setAction(action);
+        auditLog.setResourceType(resourceType);
+        auditLog.setResourceId(String.valueOf(id));
+        auditLog.setActorEmail(actorEmail);
+        auditLog.setDetails(action + " details");
+        auditLog.setCreatedAt(createdAt);
+        return auditLog;
     }
 }

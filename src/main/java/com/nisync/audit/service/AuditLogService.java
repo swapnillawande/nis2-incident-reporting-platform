@@ -1,9 +1,9 @@
 package com.nisync.audit.service;
 
 import com.nisync.audit.dto.AuditLogResponseDto;
+import com.nisync.audit.dto.AuditLogSummaryDto;
 import com.nisync.common.response.PagedResponseDto;
 
-import java.util.List;
 import java.time.LocalDateTime;
 
 public interface AuditLogService {
@@ -22,6 +22,13 @@ public interface AuditLogService {
             String sortDir);
 
     String exportAuditLogsCsv(
+            String action,
+            String resourceType,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo);
+
+    AuditLogSummaryDto getAuditLogSummary(
             String action,
             String resourceType,
             String query,

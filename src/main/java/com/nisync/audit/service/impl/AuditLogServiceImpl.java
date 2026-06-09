@@ -2,6 +2,7 @@ package com.nisync.audit.service.impl;
 
 import com.nisync.audit.dto.AuditLogMapperDto;
 import com.nisync.audit.dto.AuditLogResponseDto;
+import com.nisync.audit.dto.AuditLogSummaryDto;
 import com.nisync.audit.entity.AuditLog;
 import com.nisync.audit.repository.AuditLogRepository;
 import com.nisync.audit.service.AuditLogService;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -77,6 +80,41 @@ public class AuditLogServiceImpl implements AuditLogService {
         );
 
         return buildAuditLogsCsv(auditLogs);
+    }
+
+    @Override
+    public AuditLogSummaryDto getAuditLogSummary(
+            String action,
+            String resourceType,
+            String query,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo) {
+        List<AuditLog> auditLogs = auditLogRepository.findAll(
+                buildAuditLogSpecification(action, resourceType, query, createdFrom, createdTo),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        long uniqueActors = auditLogs.stream()
+                .map(AuditLog::getActorEmail)
+                .filter(Objects::nonNull)
+                .map(actorEmail -> actorEmail.trim().toLowerCase())
+                .filter(actorEmail -> !actorEmail.isBlank())
+                .distinct()
+                .count();
+
+        LocalDateTime latestActivityAt = auditLogs.stream()
+                .map(AuditLog::getCreatedAt)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+
+        return new AuditLogSummaryDto(
+                auditLogs.size(),
+                uniqueActors,
+                latestActivityAt,
+                countByField(auditLogs, AuditLog::getAction),
+                countByField(auditLogs, AuditLog::getResourceType)
+        );
     }
 
     private Specification<AuditLog> buildAuditLogSpecification(
@@ -199,5 +237,20 @@ public class AuditLogServiceImpl implements AuditLogService {
         }
 
         return value;
+    }
+
+    private Map<String, Long> countByField(
+            List<AuditLog> auditLogs,
+            java.util.function.Function<AuditLog, String> valueProvider) {
+        return auditLogs.stream()
+                .map(valueProvider)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.groupingBy(
+                        value -> value,
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
     }
 }

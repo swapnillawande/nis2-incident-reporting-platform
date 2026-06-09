@@ -1,6 +1,7 @@
 package com.nisync.audit.controller;
 
 import com.nisync.audit.dto.AuditLogResponseDto;
+import com.nisync.audit.dto.AuditLogSummaryDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.common.response.PagedResponseDto;
 
@@ -69,5 +70,19 @@ public class AuditLogController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=audit-logs-export.csv")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csv);
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AuditLogSummaryDto getAuditLogSummary(
+            @RequestParam(name = "action", required = false) String action,
+            @RequestParam(name = "resourceType", required = false) String resourceType,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "createdFrom", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @RequestParam(name = "createdTo", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo) {
+
+        return auditLogService.getAuditLogSummary(action, resourceType, query, createdFrom, createdTo);
     }
 }
