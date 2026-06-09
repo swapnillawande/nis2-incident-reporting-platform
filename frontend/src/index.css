@@ -1002,6 +1002,10 @@ button:disabled {
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.24);
 }
 
+.confirm-panel {
+  width: min(560px, 100%);
+}
+
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -1024,6 +1028,24 @@ button:disabled {
 
 :root[data-theme="dark"] .icon-close { background: rgba(30, 41, 59, 0.86); color: #cbd5e1; }
 .icon-close:hover { background: #e2e8f0; box-shadow: none; }
+
+.warning-panel {
+  margin: 18px 0 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+:root[data-theme="dark"] .warning-panel {
+  border-color: rgba(251, 146, 60, 0.34);
+  background: rgba(124, 45, 18, 0.28);
+  color: #fed7aa;
+}
 
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 

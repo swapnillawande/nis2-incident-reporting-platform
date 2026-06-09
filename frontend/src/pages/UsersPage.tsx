@@ -57,8 +57,10 @@ function UsersPage() {
   const isAdmin = currentUser?.roles?.includes("ADMIN");
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
+  const [userPendingDelete, setUserPendingDelete] = useState<UserResponse | null>(null);
   const [formData, setFormData] = useState<UpdateUserRequest | null>(null);
   const [isLoading, setIsLoading] = useState(isAdmin);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [queryFilter, setQueryFilter] = useState("");
@@ -213,20 +215,43 @@ function UsersPage() {
     }
   };
 
-  const handleDelete = async (user: UserResponse) => {
-    const confirmed = window.confirm(`Delete ${user.fullName}?`);
+  const isCurrentUser = (user: UserResponse) =>
+    currentUser?.email?.toLowerCase() === user.email.toLowerCase();
 
-    if (!confirmed) {
+  const openDeleteConfirm = (user: UserResponse) => {
+    if (isCurrentUser(user)) {
+      showMessage("You cannot delete your own account", "error");
       return;
     }
 
+    setUserPendingDelete(user);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (isDeleting) {
+      return;
+    }
+
+    setUserPendingDelete(null);
+  };
+
+  const handleDelete = async () => {
+    if (!userPendingDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
     try {
-      await deleteUser(user.id);
+      await deleteUser(userPendingDelete.id);
       const nextPage = users.length === 1 && page > 0 ? page - 1 : page;
+      setUserPendingDelete(null);
       await loadUsers(nextPage, pageSize);
       showMessage("User deleted successfully", "success");
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to delete user"), "error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -256,6 +281,8 @@ function UsersPage() {
         status: statusFilter,
         role: roleFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -617,8 +644,13 @@ function UsersPage() {
                         <button className="btn-secondary compact" onClick={() => openEdit(user)}>
                           Edit
                         </button>
-                        <button className="btn-danger compact" onClick={() => handleDelete(user)}>
-                          Delete
+                        <button
+                          className="btn-danger compact"
+                          onClick={() => openDeleteConfirm(user)}
+                          disabled={isCurrentUser(user)}
+                          title={isCurrentUser(user) ? "You cannot delete your own account" : undefined}
+                        >
+                          {isCurrentUser(user) ? "Current" : "Delete"}
                         </button>
                       </div>
                     </td>
@@ -641,6 +673,47 @@ function UsersPage() {
           }}
         />
       </section>
+
+      {userPendingDelete && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel confirm-panel" role="dialog" aria-modal="true">
+            <div className="modal-header">
+              <div>
+                <span className="badge">Confirm Delete</span>
+                <h2>{userPendingDelete.fullName}</h2>
+              </div>
+              <button
+                className="icon-close"
+                onClick={closeDeleteConfirm}
+                aria-label="Close"
+                disabled={isDeleting}
+              >
+                x
+              </button>
+            </div>
+
+            <p className="text-muted">
+              This will permanently remove access for {userPendingDelete.email}.
+            </p>
+
+            {userPendingDelete.roles.includes("ADMIN") && (
+              <div className="warning-panel">
+                Admin accounts are protected. The backend will reject this action if this
+                is the last remaining admin.
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={closeDeleteConfirm} disabled={isDeleting}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete User"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {selectedUser && formData && (
         <div className="modal-backdrop" role="presentation">
