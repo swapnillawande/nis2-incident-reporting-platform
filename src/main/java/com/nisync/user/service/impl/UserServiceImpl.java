@@ -291,6 +291,16 @@ public class UserServiceImpl implements UserService{
 					return new ResourceNotFoundException("User not found with id: " + userId);
 				});
 
+		if (actorEmail != null && actorEmail.equalsIgnoreCase(user.getEmail())) {
+			logger.warn("User delete failed. Actor attempted to delete own account. userId: {}, email: {}", userId, user.getEmail());
+			throw new BadRequestException("You cannot delete your own account");
+		}
+
+		if (user.getRoles().contains(RoleName.ADMIN) && userRepository.countByRole(RoleName.ADMIN) <= 1) {
+			logger.warn("User delete failed. Refusing to delete the last admin account. userId: {}, email: {}", userId, user.getEmail());
+			throw new BadRequestException("At least one admin account must remain");
+		}
+
 		UserResponseDto response = UserMapperDto.toResponse(user);
 		userRepository.delete(user);
 

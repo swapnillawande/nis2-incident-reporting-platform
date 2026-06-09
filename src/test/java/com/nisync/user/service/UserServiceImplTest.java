@@ -3,6 +3,7 @@ package com.nisync.user.service;
 import com.nisync.common.response.PagedResponseDto;
 import com.nisync.audit.service.AuditLogService;
 import com.nisync.auth.service.JwtService;
+import com.nisync.common.exception.BadRequestException;
 import com.nisync.common.exception.DuplicateResourceException;
 import com.nisync.common.exception.ResourceNotFoundException;
 import com.nisync.user.dto.RegisterRequestDto;
@@ -38,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -272,11 +274,43 @@ public class UserServiceImplTest {
         AppUser user = buildUser(1L, "Test User", "test@test.com");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.countByRole(RoleName.ADMIN)).thenReturn(2L);
 
         UserResponseDto response = userService.deleteUserById(1L, "admin@nis2.com");
 
         assertEquals(1L, response.getId());
         verify(userRepository).delete(user);
+    }
+
+    @Test
+    void shouldRejectDeletingOwnUserAccount() {
+        AppUser user = buildUser(1L, "Admin User", "admin@nis2.com");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userService.deleteUserById(1L, "ADMIN@nis2.com")
+        );
+
+        assertEquals("You cannot delete your own account", exception.getMessage());
+        verify(userRepository, never()).delete(user);
+    }
+
+    @Test
+    void shouldRejectDeletingLastAdminAccount() {
+        AppUser user = buildUser(1L, "Only Admin", "only-admin@nis2.com");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.countByRole(RoleName.ADMIN)).thenReturn(1L);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userService.deleteUserById(1L, "security@nis2.com")
+        );
+
+        assertEquals("At least one admin account must remain", exception.getMessage());
+        verify(userRepository, never()).delete(user);
     }
 
     private AppUser buildUser(Long id, String fullName, String email) {
