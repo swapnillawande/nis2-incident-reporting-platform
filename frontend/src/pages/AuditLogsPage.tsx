@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import type Highcharts from "highcharts";
+import DashboardChart from "../components/DashboardChart";
 import PaginationControls from "../components/PaginationControls";
 import SavedViewControls from "../components/SavedViewControls";
 import SortControls from "../components/SortControls";
-import { exportAuditLogsCsv, getAuditLogs } from "../api/auditApi";
+import { exportAuditLogsCsv, getAuditLogSummary, getAuditLogs } from "../api/auditApi";
 import { getApiErrorMessage } from "../api/errorUtils";
 import {
   createSavedView,
   deleteSavedView,
   getSavedViews,
 } from "../api/savedViewApi";
-import type { AuditLogResponse } from "../types/audit";
+import type { AuditLogResponse, AuditLogSummary } from "../types/audit";
 import type { SortDirection } from "../types/pagination";
 import type { SavedViewResponse } from "../types/savedView";
 
@@ -34,6 +36,19 @@ const AUDIT_SORT_OPTIONS = [
 
 const formatAction = (action: string) => action.replaceAll("_", " ");
 
+const emptyAuditSummary: AuditLogSummary = {
+  totalLogs: 0,
+  uniqueActors: 0,
+  latestActivityAt: null,
+  actionCounts: {},
+  resourceTypeCounts: {},
+};
+
+const toChartEntries = (counts: Record<string, number>, limit = 6) =>
+  Object.entries(counts)
+    .sort(([, leftCount], [, rightCount]) => rightCount - leftCount)
+    .slice(0, limit);
+
 function AuditLogsPage() {
   const currentUser = useMemo(() => {
     const userData = localStorage.getItem("user");
@@ -42,6 +57,7 @@ function AuditLogsPage() {
 
   const isAdmin = currentUser?.roles?.includes("ADMIN");
   const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
+  const [auditSummary, setAuditSummary] = useState<AuditLogSummary>(emptyAuditSummary);
   const [isLoading, setIsLoading] = useState(isAdmin);
   const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState("");
@@ -85,7 +101,7 @@ function AuditLogsPage() {
     setMessageType("");
 
     try {
-      const response = await getAuditLogs({
+      const filters = {
         action: actionFilter,
         resourceType: resourceTypeFilter,
         query: queryFilter,
@@ -95,12 +111,17 @@ function AuditLogsPage() {
         size: targetSize,
         sortBy,
         sortDir,
-      });
+      };
+      const [response, summary] = await Promise.all([
+        getAuditLogs(filters),
+        getAuditLogSummary(filters),
+      ]);
       setAuditLogs(response.content);
       setPage(response.page);
       setPageSize(response.size);
       setTotalAuditLogs(response.totalElements);
       setTotalPages(response.totalPages);
+      setAuditSummary(summary);
     } catch (error: unknown) {
       showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
     } finally {
@@ -116,6 +137,8 @@ function AuditLogsPage() {
         action: actionFilter,
         resourceType: resourceTypeFilter,
         query: queryFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
       });
       const downloadUrl = URL.createObjectURL(csvBlob);
       const downloadLink = document.createElement("a");
@@ -206,7 +229,7 @@ function AuditLogsPage() {
       return;
     }
 
-    getAuditLogs({
+    const filters = {
       action: actionFilter,
       resourceType: resourceTypeFilter,
       query: queryFilter,
@@ -216,13 +239,16 @@ function AuditLogsPage() {
       size: pageSize,
       sortBy,
       sortDir,
-    })
-      .then((response) => {
+    };
+
+    Promise.all([getAuditLogs(filters), getAuditLogSummary(filters)])
+      .then(([response, summary]) => {
         setAuditLogs(response.content);
         setPage(response.page);
         setPageSize(response.size);
         setTotalAuditLogs(response.totalElements);
         setTotalPages(response.totalPages);
+        setAuditSummary(summary);
       })
       .catch((error: unknown) => {
         showMessage(getApiErrorMessage(error, "Failed to load audit logs"), "error");
@@ -242,6 +268,68 @@ function AuditLogsPage() {
     sortBy,
     sortDir,
   ]);
+
+  const actionChartOptions = useMemo<Highcharts.Options>(() => {
+    const entries = toChartEntries(auditSummary.actionCounts);
+
+    return {
+      chart: { type: "bar", height: 260 },
+      xAxis: {
+        categories: entries.map(([action]) => formatAction(action)),
+        title: { text: undefined },
+      },
+      yAxis: {
+        allowDecimals: false,
+        min: 0,
+        title: { text: undefined },
+      },
+      legend: { enabled: false },
+      tooltip: { pointFormat: "<b>{point.y}</b> events" },
+      plotOptions: {
+        bar: {
+          colorByPoint: true,
+          colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#7c3aed", "#0f766e"],
+          borderRadius: 6,
+        },
+      },
+      series: [
+        {
+          type: "bar",
+          name: "Events",
+          data: entries.map(([, count]) => count),
+        },
+      ],
+    };
+  }, [auditSummary.actionCounts]);
+
+  const resourceChartOptions = useMemo<Highcharts.Options>(() => {
+    const entries = toChartEntries(auditSummary.resourceTypeCounts);
+
+    return {
+      chart: { type: "pie", height: 260 },
+      tooltip: { pointFormat: "<b>{point.y}</b> events" },
+      plotOptions: {
+        pie: {
+          innerSize: "62%",
+          dataLabels: {
+            enabled: true,
+            format: "{point.name}: {point.y}",
+            style: { fontSize: "12px", textOutline: "none" },
+          },
+        },
+      },
+      series: [
+        {
+          type: "pie",
+          name: "Resources",
+          data: entries.map(([resourceType, count]) => ({
+            name: resourceType,
+            y: count,
+          })),
+        },
+      ],
+    };
+  }, [auditSummary.resourceTypeCounts]);
 
   if (!isAdmin) {
     return (
@@ -402,6 +490,60 @@ function AuditLogsPage() {
             setPage(0);
           }}
         />
+      </section>
+
+      <section className="audit-insights-grid">
+        <article className="audit-kpi-panel">
+          <span className="metric-label">Filtered Events</span>
+          <strong>{auditSummary.totalLogs.toLocaleString()}</strong>
+          <small>{totalAuditLogs.toLocaleString()} rows available in the table</small>
+        </article>
+
+        <article className="audit-kpi-panel accent-teal">
+          <span className="metric-label">Unique Actors</span>
+          <strong>{auditSummary.uniqueActors.toLocaleString()}</strong>
+          <small>Across the active audit filters</small>
+        </article>
+
+        <article className="audit-kpi-panel accent-amber">
+          <span className="metric-label">Latest Activity</span>
+          <strong className="kpi-date">
+            {auditSummary.latestActivityAt
+              ? new Date(auditSummary.latestActivityAt).toLocaleString()
+              : "No activity"}
+          </strong>
+          <small>Most recent matching audit event</small>
+        </article>
+      </section>
+
+      <section className="audit-chart-grid">
+        <article className="chart-panel">
+          <div className="chart-panel-header">
+            <div>
+              <span className="badge">Action Mix</span>
+              <h3>Top Audit Actions</h3>
+            </div>
+          </div>
+          {Object.keys(auditSummary.actionCounts).length === 0 ? (
+            <p className="text-muted">No action data for these filters.</p>
+          ) : (
+            <DashboardChart options={actionChartOptions} />
+          )}
+        </article>
+
+        <article className="chart-panel">
+          <div className="chart-panel-header">
+            <div>
+              <span className="badge">Resource Mix</span>
+              <h3>Activity by Resource</h3>
+            </div>
+          </div>
+          {Object.keys(auditSummary.resourceTypeCounts).length === 0 ? (
+            <p className="text-muted">No resource data for these filters.</p>
+          ) : (
+            <DashboardChart options={resourceChartOptions} />
+          )}
+        </article>
       </section>
 
       <section className="table-panel">

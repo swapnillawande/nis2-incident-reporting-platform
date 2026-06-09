@@ -7,3 +7,11 @@ export interface AuditLogResponse {
   details: string | null;
   createdAt: string;
 }
+
+export interface AuditLogSummary {
+  totalLogs: number;
+  uniqueActors: number;
+  latestActivityAt: string | null;
+  actionCounts: Record<string, number>;
+  resourceTypeCounts: Record<string, number>;
+}

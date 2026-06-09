@@ -698,6 +698,70 @@ button:disabled {
 
 :root[data-theme="dark"] .audit-action { background: rgba(34, 211, 238, 0.16); color: #a5f3fc; }
 
+.audit-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.audit-kpi-panel {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 22px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), #ffffff 58%);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.audit-kpi-panel.accent-teal {
+  border-color: rgba(20, 184, 166, 0.22);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.13), #ffffff 58%);
+}
+
+.audit-kpi-panel.accent-amber {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), #ffffff 58%);
+}
+
+:root[data-theme="dark"] .audit-kpi-panel {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.92) 62%);
+}
+
+:root[data-theme="dark"] .audit-kpi-panel.accent-teal {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(15, 23, 42, 0.92) 62%);
+}
+
+:root[data-theme="dark"] .audit-kpi-panel.accent-amber {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(15, 23, 42, 0.92) 62%);
+}
+
+.audit-kpi-panel strong {
+  color: var(--text-main);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.audit-kpi-panel .kpi-date {
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.audit-kpi-panel small {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.audit-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
 .status-active   { color: #166534; background: #dcfce7; }
 .status-inactive { color: #475569; background: #e2e8f0; }
 .status-suspended { color: #991b1b; background: #fee2e2; }
@@ -1093,6 +1157,8 @@ button:disabled {
   .auth-card { max-width: 540px; margin: 0 auto; }
   .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-charts-grid { grid-template-columns: 1fr; }
+  .audit-insights-grid { grid-template-columns: 1fr; }
+  .audit-chart-grid { grid-template-columns: 1fr; }
   .chart-panel-wide { grid-column: span 1; }
   .page-header { align-items: flex-start; flex-direction: column; }
 }

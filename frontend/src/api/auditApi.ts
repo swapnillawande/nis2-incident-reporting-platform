@@ -1,6 +1,6 @@
 import axios from "axios";
 import { getAuthHeader } from "./userApi";
-import type { AuditLogResponse } from "../types/audit";
+import type { AuditLogResponse, AuditLogSummary } from "../types/audit";
 import type { PagedResponse, PaginationParams } from "../types/pagination";
 
 const API_BASE_URL =
@@ -29,6 +29,23 @@ export const getAuditLogs = async (
       size: filters.size,
       sortBy: filters.sortBy,
       sortDir: filters.sortDir,
+    },
+  });
+
+  return response.data;
+};
+
+export const getAuditLogSummary = async (
+  filters: AuditLogFilters = {}
+): Promise<AuditLogSummary> => {
+  const response = await axios.get(`${API_BASE_URL}/audit-logs/summary`, {
+    headers: getAuthHeader(),
+    params: {
+      action: filters.action || undefined,
+      resourceType: filters.resourceType || undefined,
+      q: filters.query?.trim() || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
     },
   });
 
